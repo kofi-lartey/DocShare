@@ -509,7 +509,7 @@ export default function Landing() {
                 <div className="text-center">
                   <h3 className="text-xl font-semibold text-gray-900 dark:text-white">{plan.name}</h3>
                   <div className="mt-4 flex items-baseline justify-center">
-                    <span className="text-5xl font-extrabold text-gray-900 dark:text-white">${plan.price}</span>
+                     <span className="text-5xl font-extrabold text-gray-900 dark:text-white">GH₵{plan.price}</span>
                     <span className="text-gray-500 ml-2">/{plan.interval}</span>
                   </div>
                   <p className="mt-2 text-sm text-gray-500">{plan.description}</p>
