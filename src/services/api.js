@@ -108,10 +108,10 @@ let mockFiles = generateMockFiles(30);
 
 // ==================== Mock Invoices ====================
 const mockInvoices = [
-  { id: 'INV-2024-001', date: '2024-06-01', amount: 19.00, status: 'paid', plan: 'Pro' },
-  { id: 'INV-2024-002', date: '2024-05-01', amount: 19.00, status: 'paid', plan: 'Pro' },
-  { id: 'INV-2024-003', date: '2024-04-01', amount: 19.00, status: 'paid', plan: 'Pro' },
-  { id: 'INV-2024-004', date: '2024-03-01', amount: 19.00, status: 'paid', plan: 'Pro' },
+  { id: 'INV-2024-001', date: '2024-06-01', amount: 20.00, status: 'paid', plan: 'Pro' },
+  { id: 'INV-2024-002', date: '2024-05-01', amount: 20.00, status: 'paid', plan: 'Pro' },
+  { id: 'INV-2024-003', date: '2024-04-01', amount: 20.00, status: 'paid', plan: 'Pro' },
+  { id: 'INV-2024-004', date: '2024-03-01', amount: 20.00, status: 'paid', plan: 'Pro' },
   { id: 'INV-2024-005', date: '2024-02-01', amount: 0.00, status: 'paid', plan: 'Free' },
 ];
 
@@ -426,6 +426,34 @@ export const mockGetNotifications = async () => {
 };
 
 // ==================== Subscription APIs ====================
+export const apiCreateSubscription = async (paymentData) => {
+  const { planId, paymentMethod = 'stripe' } = paymentData;
+  await delay(1500);
+  
+  let paymentResult = {};
+  
+  if (planId !== 'free') {
+    if (paymentMethod === 'paystack') {
+      paymentResult.reference = 'ps_' + Math.random().toString(36).substr(2, 15);
+      paymentResult.authorizationUrl = `${process.env.FRONTEND_URL}/dashboard`;
+    } else {
+      paymentResult.sessionUrl = `${process.env.FRONTEND_URL}/stripe-checkout?plan=${planId}`;
+    }
+  }
+  
+  return {
+    success: true,
+    data: {
+      ...mockUser,
+      plan: paymentData.planId,
+      subscriptionStatus: planId === 'free' ? 'active' : 'trialing',
+      subscriptionStartDate: new Date().toISOString(),
+      ...paymentResult,
+    },
+    message: 'Subscription created successfully',
+  };
+};
+
 export const mockCreateSubscription = async (paymentData) => {
   await delay(1500);
   return {
@@ -466,4 +494,22 @@ export const mockGetInvoices = async () => {
     data: mockInvoices,
     message: 'Invoices retrieved',
   };
+};
+
+export const verifyPaystackPayment = async (reference) => {
+  const API_BASE = import.meta.env.VITE_API_URL || '';
+  const token = localStorage.getItem('docshare_user') ? JSON.parse(localStorage.getItem('docshare_user')).token : null;
+  
+  const response = await fetch(`${API_BASE}/api/subscription/verify-paystack/${reference}`, {
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  });
+  
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to verify payment');
+  }
+  
+  return response.json();
 };

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { 
   FiCheck, FiDownload, FiCreditCard, FiStar, 
   FiTrendingUp, FiUsers, FiDatabase, FiClock,
@@ -9,7 +9,8 @@ import {
   FiImage, FiVideo, FiMusic, FiFileText
 } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
-import { mockGetSubscription, mockCreateSubscription, mockGetInvoices } from '../services/api';
+import { mockGetSubscription, apiCreateSubscription, mockGetInvoices } from '../services/api';
+import { loadStripe } from '@stripe/stripe-js';
 import { useNotification } from '../contexts/NotificationContext';
 import { PRICING_PLANS } from '../utils/constants';
 import { cn, formatDate } from '../utils/helpers';
@@ -110,12 +111,12 @@ const PlanCard = ({ plan, isCurrent, onSelect, isPopular }) => {
             {plan.customPrice ? (
               <span className="text-3xl font-extrabold text-gray-900 dark:text-white">Custom</span>
             ) : (
-              <>
-                <span className="text-5xl font-extrabold text-gray-900 dark:text-white">
-                  ${plan.price}
-                </span>
-                <span className="ml-1 text-gray-500">/{plan.interval}</span>
-              </>
+                <>
+                  <span className="text-5xl font-extrabold text-gray-900 dark:text-white">
+                    GH₵{plan.price}
+                  </span>
+                  <span className="ml-1 text-gray-500">/{plan.interval}</span>
+                </>
             )}
           </div>
           {plan.price > 0 && (
@@ -174,7 +175,7 @@ const InvoiceItem = ({ invoice }) => (
     <td className="py-3 px-4 text-sm text-gray-500">{formatDate(invoice.date)}</td>
     <td className="py-3 px-4">
       <span className="text-sm font-medium text-gray-900 dark:text-white">
-        ${invoice.amount === 0 ? '0.00' : invoice.amount.toFixed(2)}
+        GH₵{invoice.amount === 0 ? '0.00' : invoice.amount.toFixed(2)}
       </span>
     </td>
     <td className="py-3 px-4">
@@ -195,17 +196,13 @@ export default function Subscription() {
   const [subscription, setSubscription] = useState(null);
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [paymentProvider, setPaymentProvider] = useState('stripe');
   const [showPayment, setShowPayment] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [showSuccess, setShowSuccess] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [cardDetails, setCardDetails] = useState({
-    number: '',
-    expiry: '',
-    cvv: '',
-    name: '',
-  });
   const { success, error: notifyError } = useNotification();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -230,10 +227,22 @@ export default function Subscription() {
     if (!selectedPlan) return;
     setSubmitting(true);
     try {
-      const result = await mockCreateSubscription({ 
+      const result = await apiCreateSubscription({ 
         planId: selectedPlan.id,
-        cardDetails: cardDetails 
+        paymentMethod: paymentProvider
       });
+      
+      if (selectedPlan.price > 0) {
+        if (paymentProvider === 'stripe' && result.data.sessionUrl) {
+          window.location.href = result.data.sessionUrl;
+          return;
+        }
+        if (paymentProvider === 'paystack' && result.data.authorizationUrl) {
+          window.location.href = result.data.authorizationUrl;
+          return;
+        }
+      }
+      
       setSubscription(result.data);
       setShowSuccess(true);
       setShowPayment(false);
@@ -325,7 +334,7 @@ export default function Subscription() {
                 {currentPlanData.name}
               </h2>
               <p className="mt-1 text-gray-600 dark:text-gray-400">
-                {currentPlanData.price === 0 ? 'Free' : `$${currentPlanData.price}/${currentPlanData.interval}`}
+                 {currentPlanData.price === 0 ? 'Free' : `GH₵${currentPlanData.price}/${currentPlanData.interval}`}
               </p>
               <p className="mt-2 text-sm text-gray-500">
                 {currentPlanData.description}
@@ -512,7 +521,7 @@ export default function Subscription() {
               <div className="text-right">
                 <p className="text-sm font-medium text-gray-500">Price</p>
                 <p className="text-lg font-bold text-gray-900 dark:text-white">
-                  {selectedPlan?.price === 0 ? 'Free' : `$${selectedPlan?.price}/${selectedPlan?.interval}`}
+                  {selectedPlan?.price === 0 ? 'Free' : `GH₵${selectedPlan?.price}/${selectedPlan?.interval}`}
                 </p>
               </div>
             </div>
@@ -525,66 +534,40 @@ export default function Subscription() {
 
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                <FiCreditCard className="inline w-4 h-4 mr-2" />
-                Card Number
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">
+                Payment Method
               </label>
-              <input
-                type="text"
-                value={cardDetails.number}
-                onChange={(e) => handleCardChange('number', e.target.value)}
-                placeholder="1234 5678 9012 3456"
-                className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700/50 border-2 border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 outline-none"
-                maxLength="19"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                  Expiry Date
-                </label>
-                <input
-                  type="text"
-                  value={cardDetails.expiry}
-                  onChange={(e) => handleCardChange('expiry', e.target.value)}
-                  placeholder="MM/YY"
-                  className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700/50 border-2 border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 outline-none"
-                  maxLength="5"
-                />
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setPaymentProvider('stripe')}
+                  className={cn(
+                    'p-3 border rounded-xl flex items-center justify-center gap-2 transition-all',
+                    paymentProvider === 'stripe'
+                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                      : 'border-gray-300 dark:border-gray-600'
+                  )}
+                >
+                  <span className="font-semibold text-blue-600">Stripe</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPaymentProvider('paystack')}
+                  className={cn(
+                    'p-3 border rounded-xl flex items-center justify-center gap-2 transition-all',
+                    paymentProvider === 'paystack'
+                      ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
+                      : 'border-gray-300 dark:border-gray-600'
+                  )}
+                >
+                  <span className="font-semibold text-green-600">Paystack</span>
+                </button>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                  CVV
-                  <span className="ml-1 text-xs text-gray-400">(3-4 digits)</span>
-                </label>
-                <input
-                  type="password"
-                  value={cardDetails.cvv}
-                  onChange={(e) => handleCardChange('cvv', e.target.value)}
-                  placeholder="•••"
-                  className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700/50 border-2 border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 outline-none"
-                  maxLength="4"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                Name on Card
-              </label>
-              <input
-                type="text"
-                value={cardDetails.name}
-                onChange={(e) => handleCardChange('name', e.target.value)}
-                placeholder="John Doe"
-                className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700/50 border-2 border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 outline-none"
-              />
             </div>
 
             <div className="flex items-center gap-2 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-xs text-blue-700 dark:text-blue-300">
               <FiLock className="w-4 h-4 flex-shrink-0" />
-              <span>Your payment information is secure and encrypted</span>
+              <span>You'll be redirected to {paymentProvider === 'stripe' ? 'Stripe' : 'Paystack'} to complete payment</span>
             </div>
           </div>
         </div>
@@ -603,7 +586,7 @@ export default function Subscription() {
             className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
           >
             <FiLock className="w-4 h-4 mr-2" />
-            Subscribe Now
+            Proceed to Payment
           </Button>
         </div>
       </Modal>

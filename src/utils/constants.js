@@ -37,7 +37,7 @@ export const PRICING_PLANS = [
   {
     id: 'pro',
     name: 'Pro',
-    price: 19,
+    price: 20,
     interval: 'mo',
     description: 'For professionals and growing teams',
     popular: true,
@@ -68,7 +68,7 @@ export const PRICING_PLANS = [
   {
     id: 'express',
     name: 'Express',
-    price: 49,
+    price: 50,
     interval: 'mo',
     description: 'For enterprises with unlimited needs',
     popular: false,

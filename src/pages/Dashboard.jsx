@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { 
   FiUpload, FiEye, FiHardDrive, FiLink, 
   FiTrendingUp, FiUsers, FiClock, FiFileText,
@@ -8,7 +8,7 @@ import {
   FiDownload, FiShare2, FiStar, FiZap
 } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
-import { mockGetStats, mockGetRecentActivity } from '../services/api';
+import { mockGetStats, mockGetRecentActivity, verifyPaystackPayment } from '../services/api';
 import StatCard from '../components/dashboard/StatCard';
 import RecentActivity from '../components/dashboard/RecentActivity';
 import QuickActions from '../components/dashboard/QuickActions';
@@ -185,6 +185,9 @@ export default function DashboardOverview() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedPeriod, setSelectedPeriod] = useState('week');
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const reference = searchParams.get('reference');
 
   const fetchData = async (showRefresh = false) => {
     if (showRefresh) setRefreshing(true);
@@ -207,6 +210,22 @@ export default function DashboardOverview() {
   useEffect(() => {
     fetchData();
   }, []);
+
+  useEffect(() => {
+    const verifyPayment = async () => {
+      if (!reference) return;
+      try {
+        const result = await verifyPaystackPayment(reference);
+        if (result.success) {
+          navigate('/dashboard/subscription', { replace: true });
+        }
+      } catch (err) {
+        console.error('Payment verification failed:', err);
+      }
+    };
+
+    verifyPayment();
+  }, [reference, navigate]);
 
   const quickActions = [
     {
