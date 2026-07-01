@@ -498,13 +498,7 @@ export const mockGetInvoices = async () => {
 
 export const verifyPaystackPayment = async (reference) => {
   const API_BASE = import.meta.env.VITE_API_URL || '';
-  const token = localStorage.getItem('docshare_user') ? JSON.parse(localStorage.getItem('docshare_user')).token : null;
-  
-  const response = await fetch(`${API_BASE}/api/subscription/verify-paystack/${reference}`, {
-    headers: {
-      'Authorization': `Bearer ${token}`
-    }
-  });
+  const response = await fetch(`${API_BASE}/api/payment/verify-paystack/${reference}`);
   
   if (!response.ok) {
     const error = await response.json();
