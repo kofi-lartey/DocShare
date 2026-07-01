@@ -435,7 +435,7 @@ export const apiCreateSubscription = async (paymentData) => {
   if (planId !== 'free') {
     if (paymentMethod === 'paystack') {
       paymentResult.reference = 'ps_' + Math.random().toString(36).substr(2, 15);
-      paymentResult.authorizationUrl = `${process.env.FRONTEND_URL}/paystack-checkout?reference=${paymentResult.reference}`;
+      paymentResult.authorizationUrl = `${process.env.FRONTEND_URL}/dashboard`;
     } else {
       paymentResult.sessionUrl = `${process.env.FRONTEND_URL}/stripe-checkout?plan=${planId}`;
     }
@@ -494,4 +494,22 @@ export const mockGetInvoices = async () => {
     data: mockInvoices,
     message: 'Invoices retrieved',
   };
+};
+
+export const verifyPaystackPayment = async (reference) => {
+  const API_BASE = import.meta.env.VITE_API_URL || '';
+  const token = localStorage.getItem('docshare_user') ? JSON.parse(localStorage.getItem('docshare_user')).token : null;
+  
+  const response = await fetch(`${API_BASE}/api/subscription/verify-paystack/${reference}`, {
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  });
+  
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to verify payment');
+  }
+  
+  return response.json();
 };
