@@ -12,27 +12,54 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { PRICING_PLANS } from '../utils/constants';
 
-// Hero Image Placeholder - Replace with actual images
-const heroImage = 'https://images.unsplash.com/photo-1586281380349-632531db7ed4?w=800&h=600&fit=crop';
-const featureImages = {
-  upload: 'https://images.unsplash.com/photo-1611162616475-46b635cb6868?w=400&h=300&fit=crop',
-  qr: 'https://images.unsplash.com/photo-1598351451059-3d1be1b8493a?w=400&h=300&fit=crop',
-  security: 'https://images.unsplash.com/photo-1563013544-824ae1b704d3?w=400&h=300&fit=crop',
-  analytics: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=400&h=300&fit=crop',
-};
-const testimonialAvatars = [
-  'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop',
-  'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop',
-  'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop',
-];
+const Landing = () => {
+  // Hero Image Placeholder - Replace with actual images
+  const heroImage = 'https://images.unsplash.com/photo-1586281380349-632531db7ed4?w=800&h=600&fit=crop';
+  const featureImages = {
+    upload: 'https://images.unsplash.com/photo-1611162616475-46b635cb6868?w=400&h=300&fit=crop',
+    qr: 'https://images.unsplash.com/photo-1598351451059-3d1be1b8493a?w=400&h=300&fit=crop',
+    security: 'https://images.unsplash.com/photo-1563013544-824ae1b704d3?w=400&h=300&fit=crop',
+    analytics: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=400&h=300&fit=crop',
+  };
+  const testimonialAvatars = [
+    'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop',
+    'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop',
+    'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop',
+    'https://images.unsplash.com/photo-1500648767796-00dcc994a43?w=100&h=100&fit=crop',
+  ];
 
-export default function Landing() {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isHovered, setIsHovered] = useState(false);
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
-  const { isAuthenticated, user } = useAuth();
-  const heroRef = useRef(null);
   const videoRef = useRef(null);
+  const heroRef = useRef(null);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  
+  // Get auth context
+  const { user, isAuthenticated } = useAuth();
+
+  // Testimonials data - populate with actual data
+  const testimonials = [
+    {
+      id: 1,
+      name: "Sarah Johnson",
+      role: "Product Manager at TechCorp",
+      content: "DocShare Pro has completely transformed how our team shares documents. The QR code feature is a game-changer for our presentations.",
+      avatar: testimonialAvatars[0]
+    },
+    {
+      id: 2,
+      name: "Michael Chen",
+      role: "CTO at StartupHub",
+      content: "The security features give us peace of mind. We can share sensitive documents knowing they're protected with enterprise-grade encryption.",
+      avatar: testimonialAvatars[1]
+    },
+    {
+      id: 3,
+      name: "Emily Rodriguez",
+      role: "Marketing Director",
+      content: "The analytics dashboard helps us track engagement in real-time. We've seen a 40% increase in document engagement since switching.",
+      avatar: testimonialAvatars[2]
+    }
+  ];
 
   useEffect(() => {
     document.title = 'DocShare Pro - Share Documents Instantly';
@@ -43,7 +70,7 @@ export default function Landing() {
       if (isVideoPlaying) {
         videoRef.current.pause();
       } else {
-        videoRef.current.play();
+        videoRef.current.play().catch((err) => console.error('Video play failed:', err));
       }
       setIsVideoPlaying(!isVideoPlaying);
     }
@@ -97,33 +124,6 @@ export default function Landing() {
       color: "from-orange-500 to-red-400",
       stats: "1.2M+ views tracked",
       image: featureImages.analytics,
-    }
-  ];
-
-  const testimonials = [
-    {
-      name: "Sarah Johnson",
-      role: "Marketing Manager, TechCorp",
-      content: "DocShare Pro has completely transformed how our team shares documents. The QR codes and analytics are absolute game-changers!",
-      rating: 5,
-      avatar: testimonialAvatars[0],
-      color: "from-blue-400 to-blue-600"
-    },
-    {
-      name: "Michael Chen",
-      role: "Freelance Designer",
-      content: "The best document sharing platform I've ever used. Clean interface, lightning-fast uploads, and the analytics help me understand engagement.",
-      rating: 5,
-      avatar: testimonialAvatars[1],
-      color: "from-purple-400 to-purple-600"
-    },
-    {
-      name: "Emily Davis",
-      role: "Startup Founder",
-      content: "Finally a platform that combines beautiful design with powerful features. My clients absolutely love the QR code sharing feature!",
-      rating: 5,
-      avatar: testimonialAvatars[2],
-      color: "from-green-400 to-green-600"
     }
   ];
 
@@ -566,7 +566,7 @@ export default function Landing() {
           <div className="grid md:grid-cols-3 gap-8">
             {testimonials.map((testimonial, index) => (
               <motion.div
-                key={index}
+                key={testimonial.id}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 }}
@@ -719,4 +719,6 @@ export default function Landing() {
       `}</style>
     </div>
   );
-}
+};
+
+export default Landing;

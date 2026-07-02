@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { register as apiRegister } from '../services/api';
 import {
   FiUser, FiMail, FiLock, FiEye, FiEyeOff,
   FiCheck, FiArrowLeft, FiShield, FiStar,
@@ -10,7 +11,6 @@ import {
 } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNotification } from '../contexts/NotificationContext';
-import { useAuth } from '../contexts/AuthContext';
 import { cn } from '../utils/helpers';
 import Button from '../components/common/Button';
 import {
@@ -266,8 +266,7 @@ const SocialLoginButtons = ({ disabled }) => {
 
 export default function Register() {
   const navigate = useNavigate();
-  const { success, error } = useNotification();
-  const { login } = useAuth();
+  const { success, error: notifyError } = useNotification();
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
@@ -282,35 +281,23 @@ export default function Register() {
   const watchedEmail = watch('email');
   const watchedFullName = watch('fullName');
 
-  // Password strength checker
-  const checkPasswordStrength = (password) => {
-    let strength = 0;
-    if (password.length >= 8) strength++;
-    if (password.match(/[A-Z]/)) strength++;
-    if (password.match(/[a-z]/)) strength++;
-    if (password.match(/[0-9]/)) strength++;
-    if (password.match(/[^A-Za-z0-9]/)) strength++;
-    setPasswordStrength(strength);
-  };
-
   const onSubmit = async (data) => {
     setIsLoading(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
-
-      const userData = {
+      const response = await apiRegister({
         fullName: data.fullName,
         email: data.email,
-        plan: 'free',
-        avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(data.fullName)}&background=random&size=128`,
-      };
-
-      localStorage.setItem('mockUser', JSON.stringify(userData));
-      await login(data.email, data.password);
+        password: data.password,
+        confirmPassword: data.confirmPassword,
+        terms: data.terms,
+      });
+      if (response.data.token) {
+        localStorage.setItem('docshare_token', response.data.token);
+      }
       success('Account created successfully! Welcome to DocShare Pro 🎉');
       navigate('/dashboard');
     } catch (err) {
-      error(err.message || 'Registration failed. Please try again.');
+      notifyError(err.message || 'Registration failed. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -328,7 +315,6 @@ export default function Register() {
         transition={{ duration: 0.5 }}
         className="w-full max-w-md relative z-10"
       >
-        {/* Header */}
         <div className="text-center mb-8">
           <Logo />
           <h1 className="mt-6 text-3xl font-bold text-gray-900 dark:text-white">
@@ -339,14 +325,8 @@ export default function Register() {
           </p>
         </div>
 
-        {/* Register Card */}
-        <Card
-          variant="glass"
-          padding="lg"
-          className="backdrop-blur-sm shadow-2xl border-white/20 dark:border-gray-700/50"
-        >
+        <Card variant="glass" padding="lg" className="backdrop-blur-sm shadow-2xl border-white/20 dark:border-gray-700/50">
           <CardContent className="space-y-6">
-            {/* Header */}
             <div className="text-center">
               <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/25 mx-auto">
                 <span className="text-white text-3xl">✨</span>
@@ -360,7 +340,6 @@ export default function Register() {
             </div>
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-              {/* Full Name */}
               <FormField
                 label="Full Name"
                 icon={FiUser}
@@ -373,7 +352,6 @@ export default function Register() {
                 disabled={isDisabled}
               />
 
-              {/* Email */}
               <FormField
                 label="Email Address"
                 icon={FiMail}
@@ -386,7 +364,6 @@ export default function Register() {
                 disabled={isDisabled}
               />
 
-              {/* Password */}
               <div>
                 <PasswordField
                   label="Password"
@@ -402,7 +379,6 @@ export default function Register() {
                 />
               </div>
 
-              {/* Confirm Password */}
               <FormField
                 label="Confirm Password"
                 icon={FiLock}
@@ -424,7 +400,6 @@ export default function Register() {
                 }
               />
 
-              {/* Terms */}
               <div className="flex items-start gap-3 p-3 bg-gray-50/80 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700">
                 <input
                   type="checkbox"
@@ -458,7 +433,6 @@ export default function Register() {
                 )}
               </AnimatePresence>
 
-              {/* Submit Button */}
               <Button
                 type="submit"
                 loading={isDisabled}
@@ -468,7 +442,6 @@ export default function Register() {
                 {isDisabled ? 'Creating account...' : 'Create Account'}
               </Button>
 
-              {/* Divider */}
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">
                   <div className="w-full border-t border-gray-200 dark:border-gray-700"></div>
@@ -480,7 +453,6 @@ export default function Register() {
                 </div>
               </div>
 
-              {/* Social Login */}
               <SocialLoginButtons disabled={isDisabled} />
             </form>
           </CardContent>
@@ -498,7 +470,6 @@ export default function Register() {
           </CardFooter>
         </Card>
 
-        {/* Back to Home */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -515,7 +486,6 @@ export default function Register() {
         </motion.div>
       </motion.div>
 
-      {/* Custom CSS for animations */}
       <style>{`
         @keyframes blob {
           0% { transform: translate(0px, 0px) scale(1); }

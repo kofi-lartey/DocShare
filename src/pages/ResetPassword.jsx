@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { FiLock, FiEye, FiEyeOff } from 'react-icons/fi';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { mockResetPassword } from '../services/api';
+import { resetPassword } from '../services/api';
 import { useNotification } from '../contexts/NotificationContext';
 import { cn } from '../utils/helpers';
 import Button from '../components/common/Button';
@@ -34,7 +34,7 @@ export default function ResetPassword() {
 
   const onSubmit = async (data) => {
     try {
-      await mockResetPassword(token, data.password);
+      await resetPassword(token, data.password);
       success('Password reset successful!');
       navigate('/login');
     } catch (err) {

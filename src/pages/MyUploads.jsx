@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { mockGetFiles, mockDeleteFile } from '../services/api';
+import { getFiles, deleteFile } from '../services/api';
 import { useNotification } from '../contexts/NotificationContext';
 import { formatFileSize, formatDate } from '../utils/helpers';
 import { STATUS_OPTIONS, SORT_OPTIONS } from '../utils/constants';
@@ -41,7 +41,7 @@ export default function MyUploads() {
   const [filter, setFilter] = useState('all');
   const [sort, setSort] = useState('date-desc');
   const [qrFile, setQrFile] = useState(null);
-  const [deleteFile, setDeleteFile] = useState(null);
+  const [fileToDelete, setFileToDelete] = useState(null);
   const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState('list'); // 'grid' or 'list'
@@ -52,7 +52,7 @@ export default function MyUploads() {
   const loadFiles = useCallback(async () => {
     setLoading(true);
     try {
-      const result = await mockGetFiles({ page, limit: 10, search, filter, sort });
+      const result = await getFiles({ page, limit: 10, search, filter, sort });
       setFiles(result.data);
     } catch (err) {
       notifyError(err.message || 'Failed to load files');
@@ -67,9 +67,9 @@ export default function MyUploads() {
 
   const handleDelete = async (fileId) => {
     try {
-      await mockDeleteFile(fileId);
+      await deleteFile(fileId);
       success('File deleted successfully');
-      setDeleteFile(null);
+      setFileToDelete(null);
       loadFiles();
     } catch (err) {
       notifyError(err.message || 'Failed to delete file');
@@ -78,7 +78,7 @@ export default function MyUploads() {
 
   const handleBulkDelete = async () => {
     try {
-      await Promise.all(selectedFiles.map(id => mockDeleteFile(id)));
+      await Promise.all(selectedFiles.map(id => deleteFile(id)));
       success(`${selectedFiles.length} files deleted successfully`);
       setSelectedFiles([]);
       setIsBulkDelete(false);
@@ -373,13 +373,13 @@ export default function MyUploads() {
                   >
                     <FiCode className="w-4 h-4" />
                   </button>
-                  <button 
-                    onClick={() => setDeleteFile(file)} 
-                    className="p-1.5 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/20 text-gray-500 hover:text-red-600 transition-colors"
-                    title="Delete"
-                  >
-                    <FiTrash2 className="w-4 h-4" />
-                  </button>
+<button 
+                     onClick={() => setFileToDelete(file)} 
+                     className="p-1.5 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/20 text-gray-500 hover:text-red-600 transition-colors"
+                     title="Delete"
+                   >
+                     <FiTrash2 className="w-4 h-4" />
+                   </button>
                 </div>
               </motion.div>
             ))}
@@ -441,120 +441,120 @@ export default function MyUploads() {
                 >
                   <FiCode className="w-4 h-4" />
                 </button>
-                <button 
-                  onClick={() => setDeleteFile(file)} 
-                  className="p-2 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/20 text-gray-500 hover:text-red-600 transition-colors"
-                  title="Delete"
-                >
-                  <FiTrash2 className="w-4 h-4" />
-                </button>
-              </div>
-            </motion.div>
-          ))}
-        </div>
-      )}
+<button 
+                   onClick={() => setFileToDelete(file)} 
+                   className="p-2 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/20 text-gray-500 hover:text-red-600 transition-colors"
+                   title="Delete"
+                 >
+                   <FiTrash2 className="w-4 h-4" />
+                 </button>
+               </div>
+             </motion.div>
+           ))}
+         </div>
+       )}
 
-      {/* Pagination */}
-      <Card variant="glass" padding="md">
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            Showing {((page - 1) * 10) + 1} to {Math.min(page * 10, files.totalItems || 0)} of {files.totalItems || 0} files
-          </p>
-          <div className="flex items-center gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={!hasPrev}
-              onClick={() => setPage(p => p - 1)}
-              className="flex items-center gap-1"
-            >
-              <FiChevronLeft className="w-4 h-4" />
-              Previous
-            </Button>
-            <span className="px-3 py-1 text-sm bg-gray-100 dark:bg-gray-700 rounded-lg">
-              {page} / {files.totalPages || 1}
-            </span>
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={!hasNext}
-              onClick={() => setPage(p => p + 1)}
-              className="flex items-center gap-1"
-            >
-              Next
-              <FiChevronRight className="w-4 h-4" />
-            </Button>
-          </div>
-        </div>
-      </Card>
+       {/* Pagination */}
+       <Card variant="glass" padding="md">
+         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+           <p className="text-sm text-gray-500 dark:text-gray-400">
+             Showing {((page - 1) * 10) + 1} to {Math.min(page * 10, files.totalItems || 0)} of {files.totalItems || 0} files
+           </p>
+           <div className="flex items-center gap-2">
+             <Button
+               size="sm"
+               variant="outline"
+               disabled={!hasPrev}
+               onClick={() => setPage(p => p - 1)}
+               className="flex items-center gap-1"
+             >
+               <FiChevronLeft className="w-4 h-4" />
+               Previous
+             </Button>
+             <span className="px-3 py-1 text-sm bg-gray-100 dark:bg-gray-700 rounded-lg">
+               {page} / {files.totalPages || 1}
+             </span>
+             <Button
+               size="sm"
+               variant="outline"
+               disabled={!hasNext}
+               onClick={() => setPage(p => p + 1)}
+               className="flex items-center gap-1"
+             >
+               Next
+               <FiChevronRight className="w-4 h-4" />
+             </Button>
+           </div>
+         </div>
+       </Card>
 
-      {/* QR Code Modal */}
-      <Modal isOpen={!!qrFile} onClose={() => setQrFile(null)} title="QR Code">
-        {qrFile && (
-          <div className="text-center">
-            <div className="p-6 bg-white dark:bg-gray-800 rounded-2xl inline-block">
-              <QRCodeSVG value={qrFile.shareableLink} size={200} className="mx-auto" />
-            </div>
-            <p className="mt-4 font-medium text-gray-900 dark:text-white">{qrFile.name}</p>
-            <p className="text-sm text-gray-500">Scan to view document</p>
-            <button 
-              onClick={() => handleCopyLink(qrFile.shareableLink)}
-              className="mt-4 inline-flex items-center gap-2 px-4 py-2 text-sm text-blue-600 hover:text-blue-700 font-medium"
-            >
-              <FiCopy className="w-4 h-4" />
-              Copy link
-            </button>
-          </div>
-        )}
-      </Modal>
+       {/* QR Code Modal */}
+       <Modal isOpen={!!qrFile} onClose={() => setQrFile(null)} title="QR Code">
+         {qrFile && (
+           <div className="text-center">
+             <div className="p-6 bg-white dark:bg-gray-800 rounded-2xl inline-block">
+               <QRCodeSVG value={qrFile.shareableLink} size={200} className="mx-auto" />
+             </div>
+             <p className="mt-4 font-medium text-gray-900 dark:text-white">{qrFile.name}</p>
+             <p className="text-sm text-gray-500">Scan to view document</p>
+             <button 
+               onClick={() => handleCopyLink(qrFile.shareableLink)}
+               className="mt-4 inline-flex items-center gap-2 px-4 py-2 text-sm text-blue-600 hover:text-blue-700 font-medium"
+             >
+               <FiCopy className="w-4 h-4" />
+               Copy link
+             </button>
+           </div>
+         )}
+       </Modal>
 
-      {/* Delete Confirmation Modal */}
-      <Modal 
-        isOpen={!!deleteFile || isBulkDelete} 
-        onClose={() => {
-          setDeleteFile(null);
-          setIsBulkDelete(false);
-        }} 
-        title="Delete Files"
-      >
-        <div className="text-center">
-          <div className="w-16 h-16 mx-auto bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center mb-4">
-            <FiTrash2 className="w-8 h-8 text-red-600" />
-          </div>
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-            Are you sure?
-          </h3>
-          <p className="text-gray-500 dark:text-gray-400">
-            {isBulkDelete 
-              ? `This will permanently delete ${selectedFiles.length} files. This action cannot be undone.`
-              : `This will permanently delete "${deleteFile?.name}". This action cannot be undone.`
-            }
-          </p>
-          <div className="flex gap-3 mt-6 justify-center">
-            <Button 
-              variant="outline" 
-              onClick={() => {
-                setDeleteFile(null);
-                setIsBulkDelete(false);
-              }}
-            >
-              Cancel
-            </Button>
-            <Button 
-              variant="danger" 
-              onClick={() => {
-                if (isBulkDelete) {
-                  handleBulkDelete();
-                } else if (deleteFile) {
-                  handleDelete(deleteFile.id);
-                }
-              }}
-            >
-              Delete
-            </Button>
-          </div>
-        </div>
-      </Modal>
-    </div>
-  );
+       {/* Delete Confirmation Modal */}
+       <Modal 
+         isOpen={!!fileToDelete || isBulkDelete} 
+         onClose={() => {
+           setFileToDelete(null);
+           setIsBulkDelete(false);
+         }} 
+         title="Delete Files"
+       >
+         <div className="text-center">
+           <div className="w-16 h-16 mx-auto bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center mb-4">
+             <FiTrash2 className="w-8 h-8 text-red-600" />
+           </div>
+           <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+             Are you sure?
+           </h3>
+           <p className="text-gray-500 dark:text-gray-400">
+             {isBulkDelete 
+               ? `This will permanently delete ${selectedFiles.length} files. This action cannot be undone.`
+               : `This will permanently delete "${fileToDelete?.name}". This action cannot be undone.`
+             }
+           </p>
+           <div className="flex gap-3 mt-6 justify-center">
+             <Button 
+               variant="outline" 
+               onClick={() => {
+                 setFileToDelete(null);
+                 setIsBulkDelete(false);
+               }}
+             >
+               Cancel
+             </Button>
+             <Button 
+               variant="danger" 
+               onClick={() => {
+                 if (isBulkDelete) {
+                   handleBulkDelete();
+                 } else if (fileToDelete) {
+                   handleDelete(fileToDelete.id);
+                 }
+               }}
+             >
+               Delete
+             </Button>
+           </div>
+         </div>
+       </Modal>
+     </div>
+   );
 }

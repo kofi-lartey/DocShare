@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { mockConfirmEmail } from '../services/api';
+import { confirmEmail } from '../services/api';
 import { useNotification } from '../contexts/NotificationContext';
 import { Card } from '../components/common/Card';
 import Button from '../components/common/Button';
@@ -11,7 +11,7 @@ export default function ConfirmEmail() {
   const [state, setState] = useState('loading');
 
   useEffect(() => {
-    mockConfirmEmail(token)
+    confirmEmail(token)
       .then(() => {
         setState('success');
         success('Email confirmed successfully!');

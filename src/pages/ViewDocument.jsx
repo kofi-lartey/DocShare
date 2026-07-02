@@ -9,7 +9,7 @@ import {
   FiExternalLink, FiLink, FiEyeOff, FiUnlock,
   FiX, FiShield
 } from 'react-icons/fi';
-import { mockGetFile, mockVerifyPassword } from '../services/api';
+import { getFile, verifyPassword } from '../services/api';
 import { formatFileSize, formatDate } from '../utils/helpers';
 import { useNotification } from '../contexts/NotificationContext';
 import Button from '../components/common/Button';
@@ -61,7 +61,7 @@ const PDFPreview = ({ file, onDownload, isPasswordProtected, onUnlock }) => {
     setIsUnlocking(true);
     setUnlockError('');
     try {
-      const result = await mockVerifyPassword(file.id, password);
+      const result = await verifyPassword(file.id, password);
       if (result.success) {
         setIsUnlocked(true);
         if (onUnlock) onUnlock();
@@ -264,7 +264,7 @@ const ImagePreview = ({ file, isPasswordProtected, onUnlock }) => {
     setIsUnlocking(true);
     setUnlockError('');
     try {
-      const result = await mockVerifyPassword(file.id, password);
+      const result = await verifyPassword(file.id, password);
       if (result.success) {
         setIsUnlocked(true);
         if (onUnlock) onUnlock();
@@ -403,7 +403,7 @@ const TextPreview = ({ file, isPasswordProtected, onUnlock }) => {
     setIsUnlocking(true);
     setUnlockError('');
     try {
-      const result = await mockVerifyPassword(file.id, password);
+      const result = await verifyPassword(file.id, password);
       if (result.success) {
         setIsUnlocked(true);
         if (onUnlock) onUnlock();
@@ -535,7 +535,7 @@ const VideoPreview = ({ file, onDownload, isPasswordProtected, onUnlock }) => {
     setIsUnlocking(true);
     setUnlockError('');
     try {
-      const result = await mockVerifyPassword(file.id, password);
+      const result = await verifyPassword(file.id, password);
       if (result.success) {
         setIsUnlocked(true);
         if (onUnlock) onUnlock();
@@ -669,7 +669,7 @@ const AudioPreview = ({ file, isPasswordProtected, onUnlock }) => {
     setIsUnlocking(true);
     setUnlockError('');
     try {
-      const result = await mockVerifyPassword(file.id, password);
+      const result = await verifyPassword(file.id, password);
       if (result.success) {
         setIsUnlocked(true);
         if (onUnlock) onUnlock();
@@ -760,7 +760,7 @@ const DefaultPreview = ({ file, onDownload, onShare, isPasswordProtected, onUnlo
     setIsUnlocking(true);
     setUnlockError('');
     try {
-      const result = await mockVerifyPassword(file.id, password);
+      const result = await verifyPassword(file.id, password);
       if (result.success) {
         setIsUnlocked(true);
         if (onUnlock) onUnlock();
@@ -868,9 +868,8 @@ export default function ViewDocument() {
     const fetchFile = async () => {
       setLoading(true);
       try {
-        const result = await mockGetFile(fileId);
+        const result = await getFile(fileId);
         setFile(result.data);
-        // If file doesn't require password, auto-unlock
         if (!result.data.requirePassword) {
           setIsUnlocked(true);
         }

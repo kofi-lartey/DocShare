@@ -10,7 +10,7 @@ import {
   FiEdit2, FiSettings, FiTool, FiZap, FiEye, FiEyeOff
 } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
-import { mockUpdateProfile, mockChangePassword, mockUpdatePreferences } from '../services/api';
+import { updateProfile, changePassword, updatePreferences, getNotifications } from '../services/api';
 import { useNotification } from '../contexts/NotificationContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -60,6 +60,8 @@ export default function Settings() {
   const [showPassword, setShowPassword] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState(null);
   const [apiKeyRevealed, setApiKeyRevealed] = useState(false);
+  const [sessions, setSessions] = useState([]);
+  const [apiUsage, setApiUsage] = useState(null);
 
   // Profile form
   const { register: registerProfile, handleSubmit: handleProfile, formState: { errors: profileErrors }, setValue } = useForm({
@@ -81,10 +83,24 @@ export default function Settings() {
     }
   });
 
+  useEffect(() => {
+    const fetchApiUsage = async () => {
+      try {
+        const result = await getNotifications();
+        setApiUsage(result.data);
+      } catch (err) {
+        console.error('Failed to fetch API usage:', err);
+      }
+    };
+    if (activeTab === 'API Access') {
+      fetchApiUsage();
+    }
+  }, [activeTab]);
+
   const onProfileSubmit = async (data) => {
     setSaving(true);
     try {
-      const res = await mockUpdateProfile(data);
+      const res = await updateProfile(data);
       updateUser(res.data);
       success('Profile updated successfully!');
     } catch (err) {
@@ -96,7 +112,7 @@ export default function Settings() {
   const onPasswordSubmit = async (data) => {
     setSaving(true);
     try {
-      await mockChangePassword(data);
+      await changePassword(data);
       success('Password changed successfully!');
       reset();
     } catch (err) {
@@ -118,8 +134,10 @@ export default function Settings() {
   };
 
   const handleCopyApiKey = () => {
-    navigator.clipboard.writeText('sk_live_••••••••••••••••••••••');
-    success('API key copied to clipboard!');
+    if (user?.apiKey) {
+      navigator.clipboard.writeText(user.apiKey);
+      success('API key copied to clipboard!');
+    }
   };
 
   const TabButton = ({ id, icon: Icon, label }) => (
@@ -144,7 +162,6 @@ export default function Settings() {
     </motion.button>
   );
 
-  // Notification settings
   const notificationSettings = [
     { key: 'emailNotifications', label: 'Email notifications', description: 'Receive email updates about your documents', icon: FiMail },
     { key: 'uploadSuccess', label: 'Upload success alerts', description: 'Get notified when uploads complete', icon: FiCheckCircle },
@@ -156,7 +173,6 @@ export default function Settings() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Settings</h1>
@@ -164,32 +180,17 @@ export default function Settings() {
             Manage your account settings and preferences
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Badge variant="success" className="px-3 py-1">
-            <FiCheck className="w-3 h-3 mr-1" />
-            All Settings Saved
-          </Badge>
-        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* Sidebar */}
         <Card variant="glass" padding="sm" className="h-fit sticky top-24">
           <div className="space-y-1">
             {tabs.map(tab => (
               <TabButton key={tab.id} {...tab} />
             ))}
           </div>
-          
-          <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-            <div className="flex items-center gap-3 px-4 py-2 text-sm text-gray-500">
-              <FiZap className="w-4 h-4 text-yellow-500" />
-              <span>Version 2.1.0</span>
-            </div>
-          </div>
         </Card>
 
-        {/* Content */}
         <div className="lg:col-span-3">
           <AnimatePresence mode="wait">
             <motion.div
@@ -199,7 +200,6 @@ export default function Settings() {
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.2 }}
             >
-              {/* Profile Tab */}
               {activeTab === 'Profile' && (
                 <Card variant="glass" padding="lg">
                   <CardHeader
@@ -233,11 +233,6 @@ export default function Settings() {
                           {user?.fullName}
                         </h3>
                         <p className="text-sm text-gray-500">{user?.email}</p>
-                        <div className="flex items-center gap-2 mt-1">
-                          <Badge variant="success" size="sm">
-                            {user?.plan || 'Free'} Plan
-                          </Badge>
-                        </div>
                       </div>
                     </div>
 
@@ -296,7 +291,6 @@ export default function Settings() {
                 </Card>
               )}
 
-              {/* Security Tab */}
               {activeTab === 'Security' && (
                 <Card variant="glass" padding="lg">
                   <CardHeader
@@ -307,42 +301,32 @@ export default function Settings() {
                   />
                   <CardContent>
                     <div className="space-y-6">
-                      {/* Change Password */}
                       <div>
                         <h4 className="font-semibold text-gray-900 dark:text-white mb-4">
                           Change Password
                         </h4>
                         <form onSubmit={handlePasswordChange(onPasswordSubmit)} className="space-y-4 max-w-md">
-                          <div className="relative">
-                            <Input
-                              label="Current Password"
-                              type={showPassword ? 'text' : 'password'}
-                              {...registerPassword('currentPassword')}
-                              error={passErrors.currentPassword?.message}
-                              className="w-full"
-                            />
-                          </div>
-
-                          <div className="relative">
-                            <Input
-                              label="New Password"
-                              type={showPassword ? 'text' : 'password'}
-                              {...registerPassword('newPassword')}
-                              error={passErrors.newPassword?.message}
-                              className="w-full"
-                            />
-                          </div>
-
-                          <div className="relative">
-                            <Input
-                              label="Confirm Password"
-                              type={showPassword ? 'text' : 'password'}
-                              {...registerPassword('confirmPassword')}
-                              error={passErrors.confirmPassword?.message}
-                              className="w-full"
-                            />
-                          </div>
-
+                          <Input
+                            label="Current Password"
+                            type={showPassword ? 'text' : 'password'}
+                            {...registerPassword('currentPassword')}
+                            error={passErrors.currentPassword?.message}
+                            className="w-full"
+                          />
+                          <Input
+                            label="New Password"
+                            type={showPassword ? 'text' : 'password'}
+                            {...registerPassword('newPassword')}
+                            error={passErrors.newPassword?.message}
+                            className="w-full"
+                          />
+                          <Input
+                            label="Confirm Password"
+                            type={showPassword ? 'text' : 'password'}
+                            {...registerPassword('confirmPassword')}
+                            error={passErrors.confirmPassword?.message}
+                            className="w-full"
+                          />
                           <div className="flex items-center gap-2">
                             <button
                               type="button"
@@ -352,7 +336,6 @@ export default function Settings() {
                               {showPassword ? 'Hide passwords' : 'Show passwords'}
                             </button>
                           </div>
-
                           <Button
                             type="submit"
                             loading={saving}
@@ -387,7 +370,7 @@ export default function Settings() {
                               Active Sessions
                             </h4>
                             <p className="text-sm text-gray-500">
-                              You're signed in on 3 devices
+                              Sessions data should be fetched from the backend API
                             </p>
                           </div>
                           <Button variant="danger" size="sm">
@@ -395,25 +378,22 @@ export default function Settings() {
                           </Button>
                         </div>
                         <div className="mt-3 space-y-2">
-                          {[
-                            { device: 'Chrome on Windows', location: 'New York, US', time: 'Active now' },
-                            { device: 'Safari on iPhone', location: 'New York, US', time: '2 hours ago' },
-                            { device: 'Firefox on Mac', location: 'Remote', time: '1 day ago' },
-                          ].map((session, idx) => (
-                            <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl">
-                              <div>
-                                <p className="text-sm font-medium text-gray-900 dark:text-white">
-                                  {session.device}
-                                </p>
-                                <p className="text-xs text-gray-500">
-                                  {session.location} • {session.time}
-                                </p>
+                          {sessions.length > 0 ? (
+                            sessions.map((session, idx) => (
+                              <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl">
+                                <div>
+                                  <p className="text-sm font-medium text-gray-900 dark:text-white">
+                                    {session.device}
+                                  </p>
+                                  <p className="text-xs text-gray-500">
+                                    {session.location} • {session.lastActive}
+                                  </p>
+                                </div>
                               </div>
-                              {session.time === 'Active now' && (
-                                <Badge variant="success" size="sm">Active</Badge>
-                              )}
-                            </div>
-                          ))}
+                            ))
+                          ) : (
+                            <p className="text-sm text-gray-500">No active sessions found</p>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -421,7 +401,6 @@ export default function Settings() {
                 </Card>
               )}
 
-              {/* Notifications Tab */}
               {activeTab === 'Notifications' && (
                 <Card variant="glass" padding="lg">
                   <CardHeader
@@ -474,7 +453,6 @@ export default function Settings() {
                 </Card>
               )}
 
-              {/* Preferences Tab */}
               {activeTab === 'Preferences' && (
                 <Card variant="glass" padding="lg">
                   <CardHeader
@@ -485,7 +463,6 @@ export default function Settings() {
                   />
                   <CardContent>
                     <div className="space-y-6">
-                      {/* Theme */}
                       <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl">
                         <div className="flex items-center gap-3">
                           <div className="p-2 bg-white dark:bg-gray-700 rounded-lg">
@@ -500,48 +477,8 @@ export default function Settings() {
                           onClick={toggleTheme}
                           className="px-4 py-2 rounded-xl bg-gray-200 dark:bg-gray-700 text-sm font-medium hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
                         >
-                          {theme === 'dark' ? '☀️ Light' : '🌙 Dark'}
+                          {theme === 'dark' ? 'Light' : 'Dark'}
                         </button>
-                      </div>
-
-                      {/* Language */}
-                      <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl">
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 bg-white dark:bg-gray-700 rounded-lg">
-                            <FiGlobe className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                          </div>
-                          <div>
-                            <p className="font-medium text-gray-900 dark:text-white">Language</p>
-                            <p className="text-sm text-gray-500">Choose your preferred language</p>
-                          </div>
-                        </div>
-                        <select className="px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm">
-                          <option>English (US)</option>
-                          <option>Spanish</option>
-                          <option>French</option>
-                          <option>German</option>
-                          <option>Chinese</option>
-                        </select>
-                      </div>
-
-                      {/* Timezone */}
-                      <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl">
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 bg-white dark:bg-gray-700 rounded-lg">
-                            <FiClock className="w-5 h-5 text-orange-600 dark:text-orange-400" />
-                          </div>
-                          <div>
-                            <p className="font-medium text-gray-900 dark:text-white">Timezone</p>
-                            <p className="text-sm text-gray-500">Set your local timezone</p>
-                          </div>
-                        </div>
-                        <select className="px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm">
-                          <option>UTC-8 (Pacific Time)</option>
-                          <option>UTC-5 (Eastern Time)</option>
-                          <option>UTC+0 (GMT)</option>
-                          <option>UTC+1 (CET)</option>
-                          <option>UTC+5:30 (IST)</option>
-                        </select>
                       </div>
 
                       <Button
@@ -556,7 +493,6 @@ export default function Settings() {
                 </Card>
               )}
 
-              {/* API Access Tab */}
               {activeTab === 'API Access' && (
                 <Card variant="glass" padding="lg">
                   <CardHeader
@@ -567,14 +503,13 @@ export default function Settings() {
                   />
                   <CardContent>
                     <div className="space-y-6">
-                      {/* API Key */}
                       <div>
                         <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
                           API Key
                         </label>
                         <div className="flex gap-2">
                           <code className="flex-1 px-4 py-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700 text-sm font-mono">
-                            {apiKeyRevealed ? 'sk_live_1234567890abcdefghijklmnopqrstuvwxyz' : 'sk_live_••••••••••••••••••••••'}
+                            {user?.apiKey ? (apiKeyRevealed ? user.apiKey : '••••••••••••••••••••••') : 'No API key generated'}
                           </code>
                           <Button
                             size="sm"
@@ -590,75 +525,15 @@ export default function Settings() {
                           >
                             <FiCopy className="w-4 h-4" />
                           </Button>
-                          <Button
-                            size="sm"
-                            variant="danger"
-                          >
-                            Regenerate
-                          </Button>
                         </div>
                         <p className="mt-2 text-xs text-gray-500">
                           Keep your API key secure. Do not share it publicly.
                         </p>
                       </div>
 
-                      {/* API Usage Stats */}
-                      <div className="p-6 bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-2xl border border-blue-200 dark:border-blue-800">
-                        <h4 className="font-semibold text-gray-900 dark:text-white mb-4">
-                          API Usage
-                        </h4>
-                        <div className="grid grid-cols-3 gap-4">
-                          <div className="text-center">
-                            <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">1,247</p>
-                            <p className="text-sm text-gray-500">API Calls</p>
-                            <div className="mt-1 h-1 bg-blue-200 dark:bg-blue-800 rounded-full">
-                              <div className="h-full w-3/4 bg-blue-600 rounded-full"></div>
-                            </div>
-                          </div>
-                          <div className="text-center">
-                            <p className="text-3xl font-bold text-green-600 dark:text-green-400">99.9%</p>
-                            <p className="text-sm text-gray-500">Uptime</p>
-                            <div className="mt-1 h-1 bg-green-200 dark:bg-green-800 rounded-full">
-                              <div className="h-full w-[99.9%] bg-green-600 rounded-full"></div>
-                            </div>
-                          </div>
-                          <div className="text-center">
-                            <p className="text-3xl font-bold text-purple-600 dark:text-purple-400">45ms</p>
-                            <p className="text-sm text-gray-500">Avg Response</p>
-                            <div className="mt-1 h-1 bg-purple-200 dark:bg-purple-800 rounded-full">
-                              <div className="h-full w-[95%] bg-purple-600 rounded-full"></div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* API Documentation */}
-                      <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl">
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 bg-white dark:bg-gray-700 rounded-lg">
-                            <FiServer className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                          </div>
-                          <div>
-                            <p className="font-medium text-gray-900 dark:text-white">API Documentation</p>
-                            <p className="text-sm text-gray-500">Explore our API documentation</p>
-                          </div>
-                        </div>
-                        <Button size="sm" variant="outline">View Docs</Button>
-                      </div>
-
-                      {/* Rate Limits */}
-                      <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl">
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 bg-white dark:bg-gray-700 rounded-lg">
-                            <FiTrendingUp className="w-5 h-5 text-orange-600 dark:text-orange-400" />
-                          </div>
-                          <div>
-                            <p className="font-medium text-gray-900 dark:text-white">Rate Limits</p>
-                            <p className="text-sm text-gray-500">100 requests per minute</p>
-                          </div>
-                        </div>
-                        <Badge variant="warning" size="sm">75% used</Badge>
-                      </div>
+                      <p className="text-sm text-gray-500">
+                        API usage data should be fetched from the backend API
+                      </p>
                     </div>
                   </CardContent>
                 </Card>

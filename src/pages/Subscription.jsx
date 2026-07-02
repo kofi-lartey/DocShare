@@ -9,7 +9,7 @@ import {
   FiImage, FiVideo, FiMusic, FiFileText
 } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
-import { mockGetSubscription, apiCreateSubscription, mockGetInvoices } from '../services/api';
+import { getSubscription, createSubscription, getInvoices } from '../services/api';
 import { loadStripe } from '@stripe/stripe-js';
 import { useNotification } from '../contexts/NotificationContext';
 import { PRICING_PLANS } from '../utils/constants';
@@ -209,8 +209,8 @@ export default function Subscription() {
       setLoading(true);
       try {
         const [subRes, invRes] = await Promise.all([
-          mockGetSubscription(),
-          mockGetInvoices()
+          getSubscription(),
+          getInvoices()
         ]);
         setSubscription(subRes.data);
         setInvoices(invRes.data || []);
@@ -227,7 +227,7 @@ export default function Subscription() {
     if (!selectedPlan) return;
     setSubmitting(true);
     try {
-      const result = await apiCreateSubscription({ 
+      const result = await createSubscription({ 
         planId: selectedPlan.id,
         paymentMethod: paymentProvider
       });
@@ -256,7 +256,6 @@ export default function Subscription() {
 
   const handlePlanSelect = (plan) => {
     if (plan.price === 0) {
-      // Handle free plan downgrade
       if (window.confirm('Are you sure you want to downgrade to the Free plan? Your documents will be cleared after 7 days.')) {
         handleSubscribe();
       }
@@ -264,20 +263,6 @@ export default function Subscription() {
     }
     setSelectedPlan(plan);
     setShowPayment(true);
-  };
-
-  const handleCardChange = (field, value) => {
-    // Simple formatting
-    if (field === 'number') {
-      value = value.replace(/\D/g, '').replace(/(.{4})/g, '$1 ').trim();
-    }
-    if (field === 'expiry') {
-      value = value.replace(/\D/g, '').replace(/(.{2})/g, '$1/').trim();
-    }
-    if (field === 'cvv') {
-      value = value.replace(/\D/g, '').slice(0, 4);
-    }
-    setCardDetails(prev => ({ ...prev, [field]: value }));
   };
 
   if (loading) {

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
   FiMenu, FiBell, FiSearch, FiUser, FiLogOut, 
@@ -7,24 +7,33 @@ import {
 } from 'react-icons/fi';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
+import { getNotifications } from '../../services/api';
 
 export default function Navbar({ onMenuClick, isMobile, sidebarOpen }) {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [notifications, setNotifications] = useState([]);
   const { user, logout } = useAuth();
   const { success } = useNotification();
   const navigate = useNavigate();
   const userMenuRef = useRef(null);
   const notificationsRef = useRef(null);
 
-  // Notifications mock data
-  const notifications = [
-    { id: 1, title: 'New view on Project_Report.pdf', time: '2 min ago', read: false, icon: '👁️' },
-    { id: 2, title: 'Document uploaded successfully', time: '1 hour ago', read: false, icon: '📄' },
-    { id: 3, title: 'Subscription renewed', time: '2 days ago', read: true, icon: '💳' },
-    { id: 4, title: 'New team member added', time: '3 days ago', read: true, icon: '👤' },
-  ];
+  const loadNotifications = useCallback(async () => {
+    try {
+      const result = await getNotifications();
+      setNotifications(result.data || []);
+    } catch (err) {
+      // Silently fail - notifications are non-critical
+    }
+  }, []);
+
+  useEffect(() => {
+    if (showNotifications) {
+      loadNotifications();
+    }
+  }, [showNotifications, loadNotifications]);
 
   const unreadCount = notifications.filter(n => !n.read).length;
 

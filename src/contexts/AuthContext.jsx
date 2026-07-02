@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import { mockLogin, mockRegister, mockGetSubscription, mockUpdateProfile } from '../services/api';
+import { login as apiLogin, register as apiRegister, getMe, logout as apiLogout } from '../services/api';
 
 const AuthContext = createContext(null);
 
@@ -11,6 +11,23 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const fetchMe = async () => {
+      const token = localStorage.getItem('docshare_token');
+      if (token) {
+        try {
+          const response = await getMe();
+          setUser(response.data);
+        } catch (err) {
+          localStorage.removeItem('docshare_token');
+          localStorage.removeItem('docshare_user');
+        }
+      }
+      setLoading(false);
+    };
+    fetchMe();
+  }, []);
+
+  useEffect(() => {
     if (user) {
       localStorage.setItem('docshare_user', JSON.stringify(user));
     } else {
@@ -19,23 +36,41 @@ export function AuthProvider({ children }) {
   }, [user]);
 
   useEffect(() => {
-    setLoading(false);
+    const handleStorageChange = (e) => {
+      if (e.key === 'docshare_token' && !e.newValue) {
+        setUser(null);
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
   const login = async (email, password) => {
-    const response = await mockLogin(email, password);
+    const response = await apiLogin(email, password);
+    localStorage.setItem('docshare_token', response.data.token);
     setUser(response.data);
     return response;
   };
 
   const register = async (userData) => {
-    const response = await mockRegister(userData);
-    setUser(response.data);
+    const response = await apiRegister(userData);
+    if (response.data.token) {
+      localStorage.setItem('docshare_token', response.data.token);
+      setUser(response.data);
+    }
     return response;
   };
 
-  const logout = () => {
-    setUser(null);
+  const logout = async () => {
+    try {
+      await apiLogout();
+    } catch (err) {
+      // Proceed with local cleanup even if the server call fails
+    } finally {
+      setUser(null);
+      localStorage.removeItem('docshare_token');
+      localStorage.removeItem('docshare_user');
+    }
   };
 
   const updateUser = (data) => {

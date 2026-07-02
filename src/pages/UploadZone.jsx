@@ -14,7 +14,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { motion, AnimatePresence } from 'framer-motion';
-import { mockUploadFile } from '../services/api';
+import { uploadFile } from '../services/api';
 import { useNotification } from '../contexts/NotificationContext';
 import { cn, formatFileSize } from '../utils/helpers';
 import Button from '../components/common/Button';
@@ -404,33 +404,10 @@ export default function UploadZone() {
     }
   });
 
-  const simulateProgress = () => {
-    let progress = 0;
-    const startTime = Date.now();
-    const interval = setInterval(() => {
-      const elapsed = (Date.now() - startTime) / 1000;
-      const speed = Math.round((Math.random() * 2 + 1) * 100);
-      setUploadSpeed(speed);
-      
-      progress += Math.random() * 15 + 5;
-      if (progress >= 100) {
-        progress = 100;
-        clearInterval(interval);
-      }
-      setUploadProgress(Math.min(progress, 100));
-      
-      const remaining = (100 - progress) / 100;
-      const timeLeft = Math.round((remaining * selectedFile.size) / (speed * 1024));
-      setEstimatedTime(Math.max(0, timeLeft));
-    }, 300);
-    return interval;
-  };
-
   const handleUpload = async (data) => {
     if (!selectedFile) return;
     setUploading(true);
     setUploadProgress(0);
-    const interval = simulateProgress();
     
     try {
       const formData = new FormData();
@@ -448,12 +425,10 @@ export default function UploadZone() {
       formData.append('notifyOnView', data.notifyOnView);
       formData.append('fileSize', selectedFile.size);
       
-      const result = await mockUploadFile(formData);
-      clearInterval(interval);
+      const result = await uploadFile(formData);
       setSuccessData(result.data);
       success('File uploaded successfully! 🎉');
     } catch (err) {
-      clearInterval(interval);
       error(err.message || 'Upload failed. Please try again.');
     } finally {
       setUploading(false);

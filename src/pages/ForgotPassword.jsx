@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { FiMail } from 'react-icons/fi';
-import { mockForgotPassword } from '../services/api';
+import { forgotPassword } from '../services/api';
 import { useNotification } from '../contexts/NotificationContext';
 import { cn } from '../utils/helpers';
 import Input from '../components/common/Input';
@@ -30,7 +30,7 @@ export default function ForgotPassword() {
 
   const onSubmit = async (data) => {
     try {
-      await mockForgotPassword(data.email);
+      await forgotPassword(data.email);
       success('If an account with that email exists, a reset link has been sent.');
       setSubmitted(true);
     } catch (err) {

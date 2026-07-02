@@ -8,7 +8,7 @@ import {
   FiDownload, FiShare2, FiStar, FiZap
 } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
-import { mockGetStats, mockGetRecentActivity, verifyPaystackPayment } from '../services/api';
+import { getStats, getRecentActivity, verifyPaystackPayment } from '../services/api';
 import StatCard from '../components/dashboard/StatCard';
 import RecentActivity from '../components/dashboard/RecentActivity';
 import QuickActions from '../components/dashboard/QuickActions';
@@ -194,8 +194,8 @@ export default function DashboardOverview() {
     setLoading(true);
     try {
       const [statsRes, activityRes] = await Promise.all([
-        mockGetStats(),
-        mockGetRecentActivity()
+        getStats(),
+        getRecentActivity()
       ]);
       setStats(statsRes.data);
       setActivity(activityRes.data);
@@ -306,39 +306,39 @@ export default function DashboardOverview() {
         </div>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <EnhancedStatCard
-          title="Total Uploads"
-          value={stats.totalUploads}
-          icon={FiUpload}
-          color="blue"
-          trend={12}
-          trendLabel="vs last month"
-        />
-        <EnhancedStatCard
-          title="Total Views"
-          value={stats.totalViews.toLocaleString()}
-          icon={FiEye}
-          color="green"
-          trend={8}
-          trendLabel="vs last month"
-        />
-        <EnhancedStatCard
-          title="Storage Used"
-          value={`${stats.storageUsed} GB`}
-          subtitle={`of ${stats.storageLimit} GB`}
-          icon={FiHardDrive}
-          color="purple"
-        />
-        <EnhancedStatCard
-          title="Active Links"
-          value={stats.activeLinks}
-          icon={FiLink}
-          color="orange"
-          trend={-3}
-          trendLabel="vs last month"
-        />
+{/* Stats Grid */}
+       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+         <EnhancedStatCard
+           title="Total Uploads"
+           value={stats.totalUploads}
+           icon={FiUpload}
+           color="blue"
+           trend={stats.uploadsTrend}
+           trendLabel="vs last month"
+         />
+         <EnhancedStatCard
+           title="Total Views"
+           value={stats.totalViews.toLocaleString()}
+           icon={FiEye}
+           color="green"
+           trend={stats.viewsTrend}
+           trendLabel="vs last month"
+         />
+         <EnhancedStatCard
+           title="Storage Used"
+           value={`${stats.storageUsed} GB`}
+           subtitle={`of ${stats.storageLimit} GB`}
+           icon={FiHardDrive}
+           color="purple"
+         />
+         <EnhancedStatCard
+           title="Active Links"
+           value={stats.activeLinks}
+           icon={FiLink}
+           color="orange"
+           trend={stats.linksTrend}
+           trendLabel="vs last month"
+         />
       </div>
 
       {/* Activity & Quick Actions */}
