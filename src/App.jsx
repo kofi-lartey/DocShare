@@ -11,8 +11,8 @@ const Landing = lazy(() => import('./pages/Landing'));
 const Login = lazy(() => import('./pages/Login'));
 const Register = lazy(() => import('./pages/Register'));
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
+const VerifyOTP = lazy(() => import('./pages/VerifyOTP'));
 const ResetPassword = lazy(() => import('./pages/ResetPassword'));
-const ConfirmEmail = lazy(() => import('./pages/ConfirmEmail'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const UploadZone = lazy(() => import('./pages/UploadZone'));
 const MyUploads = lazy(() => import('./pages/MyUploads'));
@@ -54,8 +54,8 @@ function App() {
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
+                <Route path="/verify-otp" element={<VerifyOTP />} />
                 <Route path="/reset-password/:token" element={<ResetPassword />} />
-                <Route path="/confirm-email/:token" element={<ConfirmEmail />} />
                 <Route path="/view/:fileId" element={<ViewDocument />} />
 
                 <Route path="/dashboard" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>

@@ -291,11 +291,8 @@ export default function Register() {
         confirmPassword: data.confirmPassword,
         terms: data.terms,
       });
-      if (response.data.token) {
-        localStorage.setItem('docshare_token', response.data.token);
-      }
-      success('Account created successfully! Welcome to DocShare Pro 🎉');
-      navigate('/dashboard');
+      success('Account created successfully! Please verify your email.');
+      navigate('/verify-otp', { state: { email: data.email } });
     } catch (err) {
       notifyError(err.message || 'Registration failed. Please try again.');
     } finally {

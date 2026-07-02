@@ -14,7 +14,20 @@ export const login = async (email, password) => {
   });
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.message || 'Login failed');
+    throw new Error(error.message + (error.code ? ' [' + error.code + ']' : ''));
+  }
+  return response.json();
+};
+
+export const resendVerification = async (email) => {
+  const response = await fetch(`${API_BASE}/api/auth/resend-verification`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to send verification email');
   }
   return response.json();
 };
@@ -60,12 +73,25 @@ export const resetPassword = async (token, password) => {
 };
 
 export const confirmEmail = async (token) => {
-  const response = await fetch(`${API_BASE}/api/auth/confirm-email/${token}`, {
-    method: 'POST',
+  const response = await fetch(`${API_BASE}/api/auth/verify-email/${token}`, {
+    method: 'GET',
   });
   if (!response.ok) {
     const error = await response.json();
     throw new Error(error.message || 'Email confirmation failed');
+  }
+  return response.json();
+};
+
+export const verifyOtp = async (email, otp) => {
+  const response = await fetch(`${API_BASE}/api/auth/verify-otp`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, otp }),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'OTP verification failed');
   }
   return response.json();
 };

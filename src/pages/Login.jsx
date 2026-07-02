@@ -6,7 +6,7 @@ import { z } from 'zod';
 import { 
   FiMail, FiLock, FiEye, FiEyeOff, 
   FiArrowLeft, FiGithub, FiTwitter, FiLinkedin,
-  FiCheck, FiAlertCircle
+  FiCheck, FiAlertCircle, FiRefreshCw
 } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
@@ -207,12 +207,17 @@ export default function Login() {
     setIsLoading(true);
     try {
       await login(data.email, data.password);
-      success('Welcome back! 🎉');
+      success('Welcome back! ðŸŽ‰');
       
       const from = location.state?.from?.pathname || '/dashboard';
       navigate(from);
     } catch (err) {
-      error(err.message || 'Invalid email or password. Please try again.');
+      if (err.message?.includes('EMAIL_NOT_VERIFIED')) {
+        error('Email not verified. Please enter the OTP sent to your email.');
+        navigate('/verify-otp', { state: { email: data.email } });
+      } else {
+        error(err.message || 'Invalid email or password. Please try again.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -306,19 +311,17 @@ export default function Login() {
               </div>
 
               {/* Submit Button */}
-              <Button
-                type="submit"
-                loading={isDisabled}
-                disabled={isDisabled}
-                className="w-full h-12 text-base font-semibold bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 transition-all duration-300"
-              >
-                {isDisabled ? 'Signing in...' : 'Sign In'}
-              </Button>
+               <Button
+                 type="submit"
+                 loading={isLoading || isSubmitting}
+                 disabled={isDisabled}
+                 className="w-full h-12 text-base font-semibold bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 transition-all duration-300"
+               >
+                 {isLoading || isSubmitting ? 'Signing in...' : 'Sign In'}
+               </Button>
 
-             
-
-              {/* Divider */}
-              <div className="relative">
+               {/* Divider */}
+               <div className="relative">
                 <div className="absolute inset-0 flex items-center">
                   <div className="w-full border-t border-gray-200 dark:border-gray-700"></div>
                 </div>
