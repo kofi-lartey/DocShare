@@ -184,14 +184,6 @@ const SocialLoginButtons = ({ disabled }) => {
   );
 };
 
-// Demo Credentials Notice
-const DemoCredentials = () => (
-  <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-    <p className="text-xs text-blue-700 dark:text-blue-300 text-center">
-      🔑 Demo: <span className="font-mono">john@example.com</span> / <span className="font-mono">password123</span>
-    </p>
-  </div>
-);
 
 // ==================== Main Component ====================
 
@@ -323,8 +315,7 @@ export default function Login() {
                 {isDisabled ? 'Signing in...' : 'Sign In'}
               </Button>
 
-              {/* Demo Credentials */}
-              <DemoCredentials />
+             
 
               {/* Divider */}
               <div className="relative">
