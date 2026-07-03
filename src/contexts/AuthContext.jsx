@@ -74,7 +74,7 @@ export function AuthProvider({ children }) {
   };
 
   const updateUser = (data) => {
-    setUser(prev => ({ ...prev, ...data }));
+    setUser(prev => ({ ...(prev || {}), ...data }));
   };
 
   const value = {

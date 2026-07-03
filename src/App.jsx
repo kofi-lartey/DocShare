@@ -17,6 +17,7 @@ const Dashboard = lazy(() => import('./pages/Dashboard'));
 const UploadZone = lazy(() => import('./pages/UploadZone'));
 const MyUploads = lazy(() => import('./pages/MyUploads'));
 const Settings = lazy(() => import('./pages/Settings'));
+const SubscriptionRequired = lazy(() => import('./pages/SubscriptionRequired'));
 const Subscription = lazy(() => import('./pages/Subscription'));
 const ViewDocument = lazy(() => import('./pages/ViewDocument'));
 const Privacy = lazy(() => import('./pages/Privacy'));
@@ -57,6 +58,7 @@ function App() {
                 <Route path="/verify-otp" element={<VerifyOTP />} />
                 <Route path="/reset-password/:token" element={<ResetPassword />} />
                 <Route path="/view/:fileId" element={<ViewDocument />} />
+                <Route path="/subscription-required" element={<SubscriptionRequired />} />
 
                 <Route path="/dashboard" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
                   <Route index element={<Dashboard />} />

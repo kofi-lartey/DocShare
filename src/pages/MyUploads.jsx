@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { getFiles, deleteFile } from '../services/api';
 import { useNotification } from '../contexts/NotificationContext';
 import { formatFileSize, formatDate } from '../utils/helpers';
@@ -48,6 +48,7 @@ export default function MyUploads() {
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [isBulkDelete, setIsBulkDelete] = useState(false);
   const { success, error: notifyError } = useNotification();
+  const navigate = useNavigate();
 
   const loadFiles = useCallback(async () => {
     setLoading(true);
@@ -56,10 +57,13 @@ export default function MyUploads() {
       setFiles(result.data);
     } catch (err) {
       notifyError(err.message || 'Failed to load files');
+      if (err.message?.includes('complete your subscription')) {
+        navigate('/dashboard/subscription');
+      }
     } finally {
       setLoading(false);
     }
-  }, [page, search, filter, sort, notifyError]);
+  }, [page, search, filter, sort, notifyError, navigate]);
 
   useEffect(() => {
     loadFiles();

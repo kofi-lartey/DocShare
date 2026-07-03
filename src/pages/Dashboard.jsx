@@ -185,6 +185,7 @@ export default function DashboardOverview() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedPeriod, setSelectedPeriod] = useState('week');
+  const [error, setError] = useState(null);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const reference = searchParams.get('reference');
@@ -192,6 +193,7 @@ export default function DashboardOverview() {
   const fetchData = async (showRefresh = false) => {
     if (showRefresh) setRefreshing(true);
     setLoading(true);
+    setError(null);
     try {
       const [statsRes, activityRes] = await Promise.all([
         getStats(),
@@ -201,6 +203,10 @@ export default function DashboardOverview() {
       setActivity(activityRes.data);
     } catch (err) {
       console.error('Failed to fetch dashboard data:', err);
+      setError(err.message);
+      if (err.message?.includes('complete your subscription')) {
+        navigate('/dashboard/subscription');
+      }
     } finally {
       setLoading(false);
       if (showRefresh) setRefreshing(false);
@@ -258,7 +264,7 @@ export default function DashboardOverview() {
     }
   ];
 
-  if (loading || !stats) {
+  if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px]">
         <div className="relative">
@@ -266,6 +272,20 @@ export default function DashboardOverview() {
           <div className="absolute top-0 left-0 w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
         </div>
         <p className="mt-4 text-sm text-gray-500 dark:text-gray-400">Loading your dashboard...</p>
+      </div>
+    );
+  }
+
+  if (!stats) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px]">
+        <p className="text-sm text-red-500">{error || 'Failed to load dashboard data'}</p>
+        <button
+          onClick={() => fetchData(true)}
+          className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+        >
+          Retry
+        </button>
       </div>
     );
   }

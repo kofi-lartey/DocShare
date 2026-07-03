@@ -12,6 +12,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { getSubscription, createSubscription, getInvoices } from '../services/api';
 import { loadStripe } from '@stripe/stripe-js';
 import { useNotification } from '../contexts/NotificationContext';
+import { useAuth } from '../contexts/AuthContext';
 import { PRICING_PLANS } from '../utils/constants';
 import { cn, formatDate } from '../utils/helpers';
 import Button from '../components/common/Button';
@@ -202,6 +203,7 @@ export default function Subscription() {
   const [showSuccess, setShowSuccess] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const { success, error: notifyError } = useNotification();
+  const { updateUser } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -212,6 +214,12 @@ export default function Subscription() {
           getSubscription(),
           getInvoices()
         ]);
+        
+        if (!subRes.data || subRes.data.plan === undefined || subRes.data.status !== 'active') {
+          navigate('/subscription-required');
+          return;
+        }
+        
         setSubscription(subRes.data);
         setInvoices(invRes.data || []);
       } catch (err) {
@@ -221,7 +229,7 @@ export default function Subscription() {
       }
     };
     fetchData();
-  }, [notifyError]);
+  }, [notifyError, navigate]);
 
   const handleSubscribe = async () => {
     if (!selectedPlan) return;
@@ -233,14 +241,21 @@ export default function Subscription() {
       });
       
       if (selectedPlan.price > 0) {
-        if (paymentProvider === 'stripe' && result.data.sessionUrl) {
+        if (paymentProvider === 'stripe' && result.data?.sessionUrl) {
           window.location.href = result.data.sessionUrl;
           return;
         }
-        if (paymentProvider === 'paystack' && result.data.authorizationUrl) {
+        if (paymentProvider === 'paystack' && result.data?.authorizationUrl) {
           window.location.href = result.data.authorizationUrl;
           return;
         }
+      }
+      
+      if (result.data?.user) {
+        if (result.data.user.token) {
+          localStorage.setItem('docshare_token', result.data.user.token);
+        }
+        updateUser(result.data.user);
       }
       
       setSubscription(result.data);
@@ -255,12 +270,14 @@ export default function Subscription() {
   };
 
   const handlePlanSelect = (plan) => {
-    if (plan.price === 0) {
-      if (window.confirm('Are you sure you want to downgrade to the Free plan? Your documents will be cleared after 7 days.')) {
-        handleSubscribe();
-      }
+    const tiers = { free: 0, pro: 1, express: 2 };
+    const currentTier = tiers[currentPlan] || 0;
+    const selectedTier = tiers[plan.id] || 0;
+
+    if (selectedTier <= currentTier) {
       return;
     }
+
     setSelectedPlan(plan);
     setShowPayment(true);
   };
@@ -285,9 +302,9 @@ export default function Subscription() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Subscription</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Upgrade Plan</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            Manage your plan and billing
+            You are currently on the {currentPlan === 'pro' ? 'Pro' : currentPlan === 'express' ? 'Express' : 'Free'} plan
           </p>
         </div>
         {subscription && (
@@ -409,10 +426,10 @@ export default function Subscription() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-              Available Plans
+              Upgrade Plan
             </h2>
             <p className="text-sm text-gray-500">
-              Choose the plan that works best for you
+              Get more features, storage, and team members
             </p>
           </div>
           <Badge variant="info" className="px-3 py-1 text-xs">
@@ -421,17 +438,44 @@ export default function Subscription() {
           </Badge>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {PRICING_PLANS.map((plan) => (
-            <PlanCard
-              key={plan.id}
-              plan={plan}
-              isCurrent={currentPlan === plan.id}
-              isPopular={plan.popular}
-              onSelect={handlePlanSelect}
-            />
-          ))}
-        </div>
+        {(() => {
+          const tiers = { free: 0, pro: 1, express: 2 };
+          const currentTier = tiers[currentPlan] || 0;
+          const upgradePlans = PRICING_PLANS.filter(p => (tiers[p.id] || 0) > currentTier);
+
+          if (upgradePlans.length === 0) {
+            return (
+              <Card variant="glass" padding="lg" className="text-center">
+                <div className="py-12">
+                  <div className="w-16 h-16 mx-auto bg-yellow-100 dark:bg-yellow-900/30 rounded-full flex items-center justify-center mb-4">
+                    <FiStar className="w-8 h-8 text-yellow-600" />
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+                    You are on the best plan
+                  </h3>
+                  <p className="text-gray-500 dark:text-gray-400 max-w-md mx-auto">
+                    You already have the Express plan with all features, unlimited storage, and forever data retention. 
+                    No upgrades are currently available.
+                  </p>
+                </div>
+              </Card>
+            );
+          }
+
+          return (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {upgradePlans.map((plan) => (
+                <PlanCard
+                  key={plan.id}
+                  plan={plan}
+                  isCurrent={currentPlan === plan.id}
+                  isPopular={plan.popular}
+                  onSelect={handlePlanSelect}
+                />
+              ))}
+            </div>
+          );
+        })()}
       </div>
 
       {/* Invoice History */}

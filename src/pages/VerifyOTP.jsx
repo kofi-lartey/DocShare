@@ -92,9 +92,15 @@ export default function VerifyOTP() {
     }
     setIsLoading(true);
     try {
-      await verifyOtp(email, code);
-      success('Email verified successfully! You can now log in. ðŸŽ‰');
-      navigate('/login');
+      const response = await verifyOtp(email, code);
+      success('Email verified successfully! ðŸŽ‰');
+      if (response.data?.token) {
+        localStorage.setItem('docshare_token', response.data.token);
+        localStorage.setItem('docshare_user', JSON.stringify(response.data));
+        navigate('/subscription-required');
+      } else {
+        navigate('/login');
+      }
     } catch (err) {
       error(err.message || 'Invalid or expired OTP');
       setOtp(Array(OTP_LENGTH).fill(''));

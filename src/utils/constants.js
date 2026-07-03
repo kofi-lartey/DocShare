@@ -189,6 +189,7 @@ export const ROUTES = {
   ANALYTICS: '/dashboard/analytics',
   SETTINGS: '/dashboard/settings',
   SUBSCRIPTION: '/dashboard/subscription',
+  SUBSCRIPTION_REQUIRED: '/subscription-required',
   VIEW_DOCUMENT: '/view/:fileId',
 };
 

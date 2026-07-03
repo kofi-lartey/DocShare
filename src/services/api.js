@@ -258,7 +258,7 @@ export const createSubscription = async (paymentData) => {
 };
 
 export const getSubscription = async () => {
-  const response = await fetch(`${API_BASE}/api/subscriptions/me`, {
+  const response = await fetch(`${API_BASE}/api/subscriptions`, {
     headers: getAuthHeaders(),
   });
   if (!response.ok) {
@@ -269,7 +269,7 @@ export const getSubscription = async () => {
 };
 
 export const getInvoices = async () => {
-  const response = await fetch(`${API_BASE}/api/invoices`, {
+  const response = await fetch(`${API_BASE}/api/subscriptions/invoices`, {
     headers: getAuthHeaders(),
   });
   if (!response.ok) {
@@ -280,7 +280,7 @@ export const getInvoices = async () => {
 };
 
 export const verifyPaystackPayment = async (reference) => {
-  const response = await fetch(`${API_BASE}/api/payments/verify-paystack/${reference}`, {
+  const response = await fetch(`${API_BASE}/api/payment/verify-paystack/${reference}`, {
     headers: getAuthHeaders(),
   });
   if (!response.ok) {
