@@ -18,6 +18,7 @@ export function AuthProvider({ children }) {
           const response = await getMe();
           setUser(response.data);
         } catch (err) {
+          console.log('Token validation failed:', err.message);
           localStorage.removeItem('docshare_token');
           localStorage.removeItem('docshare_user');
         }

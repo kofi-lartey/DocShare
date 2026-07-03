@@ -9,7 +9,7 @@ import {
   FiImage, FiVideo, FiMusic, FiFileText
 } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
-import { getSubscription, createSubscription, getInvoices } from '../services/api';
+import { getSubscription, createSubscription, getInvoices, downloadInvoice } from '../services/api';
 import { loadStripe } from '@stripe/stripe-js';
 import { useNotification } from '../contexts/NotificationContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -156,7 +156,7 @@ const PlanCard = ({ plan, isCurrent, onSelect, isPopular }) => {
 };
 
 // Invoice Item Component
-const InvoiceItem = ({ invoice }) => (
+const InvoiceItem = ({ invoice, onDownload }) => (
   <motion.tr 
     initial={{ opacity: 0, x: -20 }}
     animate={{ opacity: 1, x: 0 }}
@@ -168,12 +168,12 @@ const InvoiceItem = ({ invoice }) => (
           <FiDownload className="w-4 h-4 text-gray-500" />
         </div>
         <div>
-          <p className="text-sm font-medium text-gray-900 dark:text-white">#{invoice.id}</p>
+          <p className="text-sm font-medium text-gray-900 dark:text-white">#{invoice.invoiceNumber || invoice.id}</p>
           <p className="text-xs text-gray-500">{invoice.description || 'Subscription'}</p>
         </div>
       </div>
     </td>
-    <td className="py-3 px-4 text-sm text-gray-500">{formatDate(invoice.date)}</td>
+    <td className="py-3 px-4 text-sm text-gray-500">{formatDate(invoice.createdAt || invoice.date)}</td>
     <td className="py-3 px-4">
       <span className="text-sm font-medium text-gray-900 dark:text-white">
         GH₵{invoice.amount === 0 ? '0.00' : invoice.amount.toFixed(2)}
@@ -185,9 +185,12 @@ const InvoiceItem = ({ invoice }) => (
       </Badge>
     </td>
     <td className="py-3 px-4 text-right">
-      <button className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors">
+      <button 
+        onClick={() => onDownload(invoice._id || invoice.id)}
+        className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors"
+      >
         <FiDownload className="w-4 h-4" />
-        PDF
+        Download
       </button>
     </td>
   </motion.tr>
@@ -205,6 +208,39 @@ export default function Subscription() {
   const { success, error: notifyError } = useNotification();
   const { updateUser } = useAuth();
   const navigate = useNavigate();
+
+  const handleDownloadInvoice = async (invoiceId) => {
+    try {
+      const response = await downloadInvoice(invoiceId);
+      const invoice = response.data;
+      
+      const csvContent = `Invoice Number,${invoice.invoiceNumber}
+Date,${new Date(invoice.createdAt).toDateString()}
+Customer,"${invoice.userId?.fullName || ''}"
+Email,"${invoice.userId?.email || ''}"
+Plan,"${invoice.plan}"
+Amount,"${invoice.currency} ${invoice.amount.toFixed(2)}"
+Status,"${invoice.status}"
+Description,"${invoice.description}"
+Period Start,${invoice.billingPeriod?.start ? new Date(invoice.billingPeriod.start).toDateString() : ''}
+Period End,${invoice.billingPeriod?.end ? new Date(invoice.billingPeriod.end).toDateString() : ''}
+`.trim();
+
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `invoice-${invoice.invoiceNumber}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      success('Invoice downloaded successfully');
+    } catch (err) {
+      notifyError(err.message || 'Failed to download invoice');
+    }
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -517,7 +553,7 @@ export default function Subscription() {
                 </thead>
                 <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                   {invoices.map((invoice) => (
-                    <InvoiceItem key={invoice.id} invoice={invoice} />
+                    <InvoiceItem key={invoice.id} invoice={invoice} onDownload={handleDownloadInvoice} />
                   ))}
                 </tbody>
               </table>

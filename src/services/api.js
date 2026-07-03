@@ -290,6 +290,17 @@ export const verifyPaystackPayment = async (reference) => {
   return response.json();
 };
 
+export const downloadInvoice = async (invoiceId) => {
+  const response = await fetch(`${API_BASE}/api/payment/invoices/${invoiceId}/download`, {
+    headers: getAuthHeaders(),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to download invoice');
+  }
+  return response.json();
+};
+
 export const logout = async () => {
   const token = localStorage.getItem('docshare_token');
   const response = await fetch(`${API_BASE}/api/auth/logout`, {
