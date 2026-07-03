@@ -245,8 +245,8 @@ export default function Subscription() {
           window.location.href = result.data.sessionUrl;
           return;
         }
-        if (paymentProvider === 'paystack' && result.data?.authorizationUrl) {
-          window.location.href = result.data.authorizationUrl;
+        if (paymentProvider === 'paystack' && result.data?.payment?.authorizationUrl) {
+          window.location.href = result.data.payment.authorizationUrl;
           return;
         }
       }
