@@ -23,7 +23,7 @@ import { cn } from '../utils/helpers';
 
 const PDFPreview = ({ file, onDownload, isPasswordProtected, onUnlock }) => {
   const [page, setPage] = useState(1);
-  const [totalPages] = useState(file?.pages || 3);
+  const [totalPages, setTotalPages] = useState(1);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [pdfUrl, setPdfUrl] = useState(null);
   const [showPdfViewer, setShowPdfViewer] = useState(false);
@@ -45,13 +45,52 @@ const PDFPreview = ({ file, onDownload, isPasswordProtected, onUnlock }) => {
         const blob = new Blob([bytes], { type: 'application/pdf' });
         const url = URL.createObjectURL(blob);
         setPdfUrl(url);
+        
+        // Get actual page count from the PDF
+        getPDFPageCount(url);
       } catch (e) {
         console.error('Error creating PDF URL:', e);
       }
     } else if (file?.url) {
       setPdfUrl(file.url);
+      // Get actual page count from the PDF
+      getPDFPageCount(file.url);
     }
   }, [file]);
+
+  // Function to get actual PDF page count
+  const getPDFPageCount = async (url) => {
+    try {
+      // Fetch the PDF and read its metadata
+      const response = await fetch(url);
+      const arrayBuffer = await response.arrayBuffer();
+      
+      // Simple way to get page count from PDF
+      // Look for /Type /Page or /Count in the PDF structure
+      const text = await new TextDecoder('latin1').decode(arrayBuffer.slice(0, 10000));
+      const pageCountMatch = text.match(/\/Count\s+(\d+)/);
+      if (pageCountMatch) {
+        setTotalPages(parseInt(pageCountMatch[1]));
+      } else {
+        // If we can't find the count, try counting page objects
+        const pageCount = (text.match(/\/Type\s*\/Page/g) || []).length;
+        if (pageCount > 0) {
+          setTotalPages(pageCount);
+        } else {
+          // Fallback: try to estimate from trailer
+          const trailerMatch = text.match(/\/Pages\s+(\d+)\s+0\s+R/);
+          if (trailerMatch) {
+            setTotalPages(parseInt(trailerMatch[1]));
+          } else {
+            setTotalPages(1); // Default to 1 if we can't determine
+          }
+        }
+      }
+    } catch (e) {
+      console.error('Error getting PDF page count:', e);
+      setTotalPages(1);
+    }
+  };
 
   const handleUnlock = async () => {
     if (!password) {
@@ -921,8 +960,46 @@ export default function ViewDocument() {
     success('Link copied to clipboard!');
   };
 
-  const handleDownload = () => {
-    success('Download started!');
+  const handleDownload = async () => {
+    try {
+      // If file has a URL, fetch and download it
+      if (file?.url) {
+        const response = await fetch(file.url);
+        const blob = await response.blob();
+        const downloadUrl = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+        link.download = file?.name || 'document';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(downloadUrl);
+        success('Download started!');
+      } else if (file?.fileData || file?.content) {
+        // If file data is base64, decode and download
+        const data = file.fileData || file.content;
+        const binaryString = atob(data);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+        const blob = new Blob([bytes], { type: file?.type || 'application/octet-stream' });
+        const downloadUrl = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+        link.download = file?.name || 'document';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(downloadUrl);
+        success('Download started!');
+      } else {
+        error('Unable to download file - no data available');
+      }
+    } catch (err) {
+      error('Failed to download file');
+      console.error('Download error:', err);
+    }
   };
 
   const handleShare = () => {
