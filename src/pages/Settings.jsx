@@ -7,10 +7,10 @@ import {
   FiUpload, FiSave, FiShield, FiCheck, FiX, FiCopy,
   FiAlertCircle, FiCheckCircle, FiClock, FiTrendingUp,
   FiCpu, FiDatabase, FiServer, FiMail, FiSmartphone,
-  FiEdit2, FiSettings, FiTool, FiZap, FiEye, FiEyeOff
+  FiEdit2, FiSettings, FiTool, FiZap, FiEye, FiEyeOff, FiTrash2
 } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
-import { updateProfile, changePassword, updatePreferences, getNotifications } from '../services/api';
+import { updateProfile, changePassword, updatePreferences, getNotifications, updateConsent, exportUserData, deleteUserData } from '../services/api';
 import { useNotification } from '../contexts/NotificationContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -26,6 +26,7 @@ const tabs = [
   { id: 'Notifications', icon: FiBell, label: 'Notifications' },
   { id: 'Preferences', icon: FiSettings, label: 'Preferences' },
   { id: 'API Access', icon: FiKey, label: 'API Access' },
+  { id: 'Privacy', icon: FiShield, label: 'Privacy' },
 ];
 
 // Validation Schemas
@@ -492,55 +493,155 @@ export default function Settings() {
                 </Card>
               )}
 
-              {activeTab === 'API Access' && (
-                <Card variant="glass" padding="lg">
-                  <CardHeader
-                    icon={<FiKey className="w-6 h-6 text-cyan-600" />}
-                    title="API Access"
-                    subtitle="Manage your API keys and usage"
-                    className="mb-6"
-                  />
-                  <CardContent>
-                    <div className="space-y-6">
-                      <div>
-                        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
-                          API Key
-                        </label>
-                        <div className="flex gap-2">
-                          <code className="flex-1 px-4 py-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700 text-sm font-mono">
-                            {user?.apiKey ? (apiKeyRevealed ? user.apiKey : '••••••••••••••••••••••') : 'No API key generated'}
-                          </code>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => setApiKeyRevealed(!apiKeyRevealed)}
-                          >
-                            {apiKeyRevealed ? <FiEyeOff className="w-4 h-4" /> : <FiEye className="w-4 h-4" />}
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={handleCopyApiKey}
-                          >
-                            <FiCopy className="w-4 h-4" />
-                          </Button>
-                        </div>
-                        <p className="mt-2 text-xs text-gray-500">
-                          Keep your API key secure. Do not share it publicly.
-                        </p>
-                      </div>
-
-                      <p className="text-sm text-gray-500">
-                        API usage data should be fetched from the backend API
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
+              {activeTab === 'Privacy' && (
+                <PrivacyTab
+                  user={user}
+                  success={success}
+                  error={error}
+                  updateUser={updateUser}
+                />
               )}
             </motion.div>
           </AnimatePresence>
         </div>
       </div>
     </div>
+  );
+}
+
+const PRIVACY_CONSENT_VERSION = '1.0';
+
+function PrivacyTab({ user, success, error, updateUser }) {
+  const consent = user?.privacyConsent || {};
+  const [analytics, setAnalytics] = useState(consent.analytics ?? false);
+  const [geoTracking, setGeoTracking] = useState(consent.geoTracking ?? false);
+  const [saving, setSaving] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  const saveConsent = async () => {
+    setSaving(true);
+    try {
+      const res = await updateConsent({
+        analytics,
+        geoTracking,
+        consentVersion: PRIVACY_CONSENT_VERSION
+      });
+      updateUser({ ...user, privacyConsent: res.data });
+      success('Privacy preferences saved');
+    } catch (err) {
+      error(err.message || 'Failed to save consent');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleExport = async () => {
+    setBusy(true);
+    try {
+      const res = await exportUserData();
+      const blob = new Blob([JSON.stringify(res.data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'docshare-data-export.json';
+      a.click();
+      URL.revokeObjectURL(url);
+      success('Data exported');
+    } catch (err) {
+      error(err.message || 'Export failed');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!window.confirm('This permanently deletes your download analytics data. Continue?')) return;
+    setBusy(true);
+    try {
+      await deleteUserData();
+      success('Your analytics data was deleted');
+    } catch (err) {
+      error(err.message || 'Delete failed');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const consentSettings = [
+    {
+      key: 'analytics',
+      label: 'Download analytics',
+      description: 'Record anonymous download events (hashed IP only) to show you usage analytics.',
+      value: analytics,
+      set: setAnalytics
+    },
+    {
+      key: 'geoTracking',
+      label: 'Geographic insights',
+      description: 'Enrich download analytics with approximate country/region from your IP. Requires analytics to be on.',
+      value: geoTracking,
+      set: setGeoTracking,
+      disabled: !analytics
+    }
+  ];
+
+  return (
+    <Card variant="glass" padding="lg">
+      <CardHeader
+        icon={<FiShield className="w-6 h-6 text-indigo-600" />}
+        title="Privacy & Data"
+        subtitle="Control how your data is collected and used"
+        className="mb-6"
+      />
+      <CardContent>
+        <div className="space-y-4">
+          {consentSettings.map((setting) => (
+            <div
+              key={setting.key}
+              className="flex items-start justify-between p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl"
+            >
+              <div className="flex items-start gap-3">
+                <div className="p-2 bg-white dark:bg-gray-700 rounded-lg">
+                  <FiShield className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                </div>
+                <div>
+                  <p className="font-medium text-gray-900 dark:text-white">{setting.label}</p>
+                  <p className="text-sm text-gray-500">{setting.description}</p>
+                </div>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={setting.value}
+                  disabled={setting.disabled}
+                  onChange={(e) => setting.set(e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600 disabled:opacity-50"></div>
+              </label>
+            </div>
+          ))}
+
+          <p className="text-xs text-gray-500">
+            We store only a salted hash of IP addresses and never raw addresses. You can withdraw consent or delete your data at any time.
+          </p>
+
+          <div className="flex flex-wrap gap-3 pt-2">
+            <Button onClick={saveConsent} loading={saving} className="flex items-center gap-2">
+              <FiSave className="w-4 h-4" />
+              Save Privacy Settings
+            </Button>
+            <Button variant="outline" onClick={handleExport} loading={busy} className="flex items-center gap-2">
+              <FiDownload className="w-4 h-4" />
+              Export My Data
+            </Button>
+            <Button variant="danger" onClick={handleDelete} loading={busy} className="flex items-center gap-2">
+              <FiTrash2 className="w-4 h-4" />
+              Delete Analytics Data
+            </Button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

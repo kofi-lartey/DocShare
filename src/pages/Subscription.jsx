@@ -9,7 +9,7 @@ import {
   FiImage, FiVideo, FiMusic, FiFileText
 } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
-import { getSubscription, createSubscription, getInvoices, downloadInvoice } from '../services/api';
+import { getSubscription, createSubscription, getInvoices, downloadInvoice, verifyCoupon } from '../services/api';
 import { loadStripe } from '@stripe/stripe-js';
 import { useNotification } from '../contexts/NotificationContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -205,6 +205,10 @@ export default function Subscription() {
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [showSuccess, setShowSuccess] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [couponCode, setCouponCode] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState(null);
+  const [couponError, setCouponError] = useState('');
+  const [verifyingCoupon, setVerifyingCoupon] = useState(false);
   const { success, error: notifyError } = useNotification();
   const { updateUser } = useAuth();
   const navigate = useNavigate();
@@ -273,7 +277,8 @@ Period End,${invoice.billingPeriod?.end ? new Date(invoice.billingPeriod.end).to
     try {
       const result = await createSubscription({ 
         planId: selectedPlan.id,
-        paymentMethod: paymentProvider
+        paymentMethod: paymentProvider,
+        couponCode: appliedCoupon?.code
       });
       
       if (selectedPlan.price > 0) {
@@ -310,12 +315,39 @@ Period End,${invoice.billingPeriod?.end ? new Date(invoice.billingPeriod.end).to
     const currentTier = tiers[currentPlan] || 0;
     const selectedTier = tiers[plan.id] || 0;
 
+    setCouponCode('');
+    setAppliedCoupon(null);
+    setCouponError('');
+
     if (selectedTier <= currentTier) {
       return;
     }
 
     setSelectedPlan(plan);
     setShowPayment(true);
+  };
+
+  const handleApplyCoupon = async () => {
+    if (!couponCode.trim() || !selectedPlan) return;
+    setVerifyingCoupon(true);
+    setCouponError('');
+    try {
+      const baseAmount = selectedPlan.id === 'express' ? 50 : 20;
+      const res = await verifyCoupon(couponCode.trim(), selectedPlan.id, baseAmount);
+      setAppliedCoupon(res.data);
+      success(`Coupon applied — you save ${res.data.currency} ${res.data.discountAmount}`);
+    } catch (err) {
+      setAppliedCoupon(null);
+      setCouponError(err.message || 'Invalid coupon');
+    } finally {
+      setVerifyingCoupon(false);
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setCouponCode('');
+    setAppliedCoupon(null);
+    setCouponError('');
   };
 
   if (loading) {
@@ -592,6 +624,54 @@ Period End,${invoice.billingPeriod?.end ? new Date(invoice.billingPeriod.end).to
               <p>• {selectedPlan?.retentionDays === Infinity ? 'Forever' : `${selectedPlan?.retentionDays} days`} data retention</p>
               <p>• Supports {selectedPlan?.allowedFormats?.join(', ') || 'all formats'}</p>
             </div>
+          </div>
+
+          {/* Coupon / discount */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 block">
+              Discount Coupon
+            </label>
+            {appliedCoupon ? (
+              <div className="flex items-center justify-between p-3 rounded-xl border border-green-300 dark:border-green-700 bg-green-50 dark:bg-green-900/20">
+                <div>
+                  <p className="text-sm font-semibold text-green-700 dark:text-green-300">
+                    {appliedCoupon.code} applied
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {appliedCoupon.currency} {appliedCoupon.discountAmount} off
+                    {' '}· pay {appliedCoupon.currency} {appliedCoupon.finalAmount}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleRemoveCoupon}
+                  className="text-xs text-red-600 hover:text-red-700 font-medium"
+                >
+                  Remove
+                </button>
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={couponCode}
+                  onChange={(e) => setCouponCode(e.target.value)}
+                  placeholder="Enter coupon code"
+                  className="flex-1 px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 uppercase outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleApplyCoupon}
+                  loading={verifyingCoupon}
+                >
+                  Apply
+                </Button>
+              </div>
+            )}
+            {couponError && (
+              <p className="text-xs text-red-600">{couponError}</p>
+            )}
           </div>
 
           <div className="space-y-4">

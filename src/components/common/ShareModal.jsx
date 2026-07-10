@@ -4,11 +4,18 @@ import { Modal } from './Modal';
 import Button from './Button';
 import { SOCIAL_PLATFORMS } from '../../utils/socialMedia';
 import { QRCodeSVG } from 'qrcode.react';
+import { getOgPreview } from '../../services/api';
+import { useNotification } from '../../contexts/NotificationContext';
 
 export default function ShareModal({ isOpen, onClose, url, documentName, qrCode }) {
   const qrRef = useRef(null);
   const [shareableImage, setShareableImage] = useState(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [attachedLink, setAttachedLink] = useState('');
+  const [ogPreview, setOgPreview] = useState(null);
+  const [ogLoading, setOgLoading] = useState(false);
+  const [ogError, setOgError] = useState('');
+  const { error: notifyError } = useNotification();
 
   // Load an image element from the provided QR data URL (preferred) or the rendered SVG
   const loadQRImage = async () => {
@@ -240,6 +247,27 @@ export default function ShareModal({ isOpen, onClose, url, documentName, qrCode 
     }
   };
 
+  const handleFetchOgPreview = async () => {
+    if (!attachedLink.trim()) return;
+    setOgLoading(true);
+    setOgError('');
+    try {
+      const res = await getOgPreview(attachedLink.trim());
+      setOgPreview(res.data);
+    } catch (err) {
+      setOgError(err.message || 'Could not fetch link preview');
+      setOgPreview(null);
+    } finally {
+      setOgLoading(false);
+    }
+  };
+
+  const clearOgPreview = () => {
+    setAttachedLink('');
+    setOgPreview(null);
+    setOgError('');
+  };
+
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Share Document">
       <div className="grid grid-cols-3 gap-4 mb-4">
@@ -262,6 +290,62 @@ export default function ShareModal({ isOpen, onClose, url, documentName, qrCode 
             </span>
           </motion.button>
         ))}
+      </div>
+
+      {/* Attach an external link with Open Graph preview */}
+      <div className="mb-4 p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/40">
+        <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          Attach a link (optional)
+        </p>
+        {ogPreview ? (
+          <a
+            href={ogPreview.url || attachedLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex gap-3 p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:shadow transition-shadow"
+          >
+            {ogPreview.image ? (
+              <img
+                src={ogPreview.image}
+                alt=""
+                className="w-16 h-16 object-cover rounded-md flex-shrink-0"
+              />
+            ) : (
+              <div className="w-16 h-16 rounded-md bg-gray-200 dark:bg-gray-700 flex-shrink-0" />
+            )}
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
+                {ogPreview.title || 'Link preview'}
+              </p>
+              <p className="text-xs text-gray-500 line-clamp-2">
+                {ogPreview.description || attachedLink}
+              </p>
+            </div>
+          </a>
+        ) : (
+          <div className="flex gap-2">
+            <input
+              type="url"
+              value={attachedLink}
+              onChange={(e) => setAttachedLink(e.target.value)}
+              placeholder="https://example.com/article"
+              className="flex-1 px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <Button size="sm" variant="outline" onClick={handleFetchOgPreview} loading={ogLoading}>
+              Preview
+            </Button>
+          </div>
+        )}
+        {ogError && <p className="mt-2 text-xs text-red-600">{ogError}</p>}
+        {ogPreview && (
+          <button
+            type="button"
+            onClick={clearOgPreview}
+            className="mt-2 text-xs text-red-600 hover:text-red-700 font-medium"
+          >
+            Remove link
+          </button>
+        )}
       </div>
 
       <div className="flex flex-col items-center gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">

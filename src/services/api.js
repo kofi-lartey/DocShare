@@ -313,3 +313,104 @@ export const logout = async () => {
   }
   return response.json();
 };
+
+// ==================== Coupon APIs ====================
+export const verifyCoupon = async (code, planId, baseAmount) => {
+  const response = await fetch(`${API_BASE}/api/coupons/verify`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+    body: JSON.stringify({ code, planId, baseAmount }),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Invalid coupon');
+  }
+  return response.json();
+};
+
+export const createCoupon = async (couponData) => {
+  const response = await fetch(`${API_BASE}/api/coupons`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+    body: JSON.stringify(couponData),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to create coupon');
+  }
+  return response.json();
+};
+
+// ==================== Open Graph / Link Preview ====================
+export const getOgPreview = async (url) => {
+  const params = new URLSearchParams({ url });
+  const response = await fetch(`${API_BASE}/api/og/preview?${params}`, {
+    headers: getAuthHeaders(),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to fetch link preview');
+  }
+  return response.json();
+};
+
+// ==================== Download Analytics ====================
+export const trackDownload = async (fileId) => {
+  const response = await fetch(`${API_BASE}/api/files/${fileId}/download`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to track download');
+  }
+  return response.json();
+};
+
+export const getDownloadAnalytics = async () => {
+  const response = await fetch(`${API_BASE}/api/dashboard/downloads`, {
+    headers: getAuthHeaders(),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to load analytics');
+  }
+  return response.json();
+};
+
+// ==================== Privacy / Consent APIs ====================
+export const updateConsent = async (consentData) => {
+  const response = await fetch(`${API_BASE}/api/user/consent`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+    body: JSON.stringify(consentData),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to update consent');
+  }
+  return response.json();
+};
+
+export const exportUserData = async () => {
+  const response = await fetch(`${API_BASE}/api/user/data-export`, {
+    headers: getAuthHeaders(),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to export data');
+  }
+  return response.json();
+};
+
+export const deleteUserData = async () => {
+  const response = await fetch(`${API_BASE}/api/user/data`, {
+    method: 'DELETE',
+    headers: getAuthHeaders(),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to delete data');
+  }
+  return response.json();
+};

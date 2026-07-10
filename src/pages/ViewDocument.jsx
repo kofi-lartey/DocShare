@@ -9,7 +9,7 @@ import {
   FiExternalLink, FiLink, FiEyeOff, FiUnlock,
   FiX, FiShield
 } from 'react-icons/fi';
-import { getFile, verifyPassword } from '../services/api';
+import { getFile, verifyPassword, trackDownload } from '../services/api';
 import { formatFileSize, formatDate } from '../utils/helpers';
 import { useNotification } from '../contexts/NotificationContext';
 import Button from '../components/common/Button';
@@ -986,6 +986,11 @@ export default function ViewDocument() {
 
   const handleDownload = async () => {
     try {
+      // Best-effort analytics ping (respects owner privacy consent server-side).
+      try {
+        await trackDownload(file.id || file._id || fileId);
+      } catch { /* analytics is non-blocking */ }
+
       // If file has a URL, fetch and download it
       if (file?.url) {
         const response = await fetch(file.url);

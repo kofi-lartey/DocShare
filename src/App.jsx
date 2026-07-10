@@ -5,6 +5,7 @@ import { ThemeProvider } from './contexts/ThemeContext';
 import { NotificationProvider } from './contexts/NotificationContext';
 import ProtectedRoute from './components/layout/ProtectedRoute';
 import DashboardLayout from './components/layout/DashboardLayout';
+import ConsentBanner from './components/common/ConsentBanner';
 import { PageLoader } from './components/common/Spinner';
 import { AppLoader } from './components/common/ImageLoader';
 
@@ -65,6 +66,7 @@ function App() {
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </Suspense>
+            <ConsentBanner />
           </Router>
         </AuthProvider>
       </NotificationProvider>
