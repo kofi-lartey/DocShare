@@ -137,6 +137,16 @@ const PDFPreview = ({ file, onDownload, isPasswordProtected, onUnlock }) => {
     }
   };
 
+  const handleKeyDown = (e) => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+      e.preventDefault();
+      setPage((p) => Math.min(totalPages, p + 1));
+    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      setPage((p) => Math.max(1, p - 1));
+    }
+  };
+
   // If password protected and not unlocked, show lock screen
   if (isPasswordProtected && !isUnlocked) {
     return (
@@ -178,15 +188,17 @@ const PDFPreview = ({ file, onDownload, isPasswordProtected, onUnlock }) => {
 
   return (
     <>
-      <div className="w-full">
+      <div className="w-full" tabIndex={0} onKeyDown={handleKeyDown}>
         <div className="bg-gray-100 dark:bg-gray-800 rounded-xl p-4 flex flex-col items-center justify-center min-h-[500px]">
-          {pdfUrl && showPdfViewer ? (
-            <iframe
-              src={`${pdfUrl}#page=${page}&toolbar=1&navpanes=1&scrollbar=1`}
-              className="w-full h-[500px] rounded-lg border-0"
-              title="PDF Viewer"
-              allowFullScreen
-            />
+        {pdfUrl && showPdfViewer ? (
+          <iframe
+            key={page}
+            id="pdf-viewer"
+            src={`${pdfUrl}#page=${page}&toolbar=1&navpanes=1&scrollbar=1&view=FitH`}
+            className="w-full h-[500px] rounded-lg border-0"
+            title="PDF Viewer"
+            allowFullScreen
+          />
           ) : (
             <div className="text-center">
               <div className="w-24 h-24 bg-red-100 dark:bg-red-900/30 rounded-2xl flex items-center justify-center mx-auto mb-4">
@@ -226,17 +238,17 @@ const PDFPreview = ({ file, onDownload, isPasswordProtected, onUnlock }) => {
           <div className="flex items-center justify-between mt-4 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl">
             <div className="flex items-center gap-2">
               <button 
-                className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50" 
+                className="p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50 transition-colors" 
                 disabled={page <= 1}
                 onClick={() => setPage(p => Math.max(1, p - 1))}
               >
                 <FiArrowLeft className="w-4 h-4" />
               </button>
-              <span className="text-sm text-gray-600 dark:text-gray-400">
+              <span className="text-sm text-gray-600 dark:text-gray-400 px-2">
                 Page {page} of {totalPages}
               </span>
               <button 
-                className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50" 
+                className="p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50 transition-colors" 
                 disabled={page >= totalPages}
                 onClick={() => setPage(p => Math.min(totalPages, p + 1))}
               >
@@ -244,20 +256,23 @@ const PDFPreview = ({ file, onDownload, isPasswordProtected, onUnlock }) => {
               </button>
             </div>
             <div className="flex items-center gap-2">
+              <span className="text-xs text-gray-400 dark:text-gray-500 mr-2 hidden sm:inline">
+                Use arrow keys to navigate
+              </span>
               <button 
-                className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
+                className="p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
                 onClick={() => setIsFullscreen(true)}
               >
                 <FiMaximize2 className="w-4 h-4" />
               </button>
               <button 
-                className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
+                className="p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
                 onClick={() => window.print()}
               >
                 <FiPrinter className="w-4 h-4" />
               </button>
               <button 
-                className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700"
+                className="p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
                 onClick={() => setShowPdfViewer(false)}
               >
                 <FiX className="w-4 h-4" />
@@ -268,13 +283,14 @@ const PDFPreview = ({ file, onDownload, isPasswordProtected, onUnlock }) => {
       </div>
 
       <Modal isOpen={isFullscreen} onClose={() => setIsFullscreen(false)} title={file?.name} size="lg">
-        {pdfUrl && showPdfViewer ? (
-          <iframe
-            src={`${pdfUrl}#toolbar=1&navpanes=1&scrollbar=1`}
-            className="w-full h-[80vh] rounded-lg border-0"
-            title="PDF Fullscreen"
-            allowFullScreen
-          />
+      {pdfUrl && showPdfViewer ? (
+            <iframe
+              key={page}
+              src={`${pdfUrl}#page=${page}&toolbar=1&navpanes=1&scrollbar=1&view=FitH`}
+              className="w-full h-[80vh] rounded-lg border-0"
+              title="PDF Fullscreen"
+              allowFullScreen
+            />
         ) : (
           <div className="bg-gray-100 dark:bg-gray-800 rounded-xl p-8 flex flex-col items-center justify-center min-h-[500px]">
             <FiFileText className="text-red-600" size={80} />
