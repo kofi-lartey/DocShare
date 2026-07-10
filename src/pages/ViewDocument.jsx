@@ -66,16 +66,23 @@ const PDFPreview = ({ file, onDownload, isPasswordProtected, onUnlock }) => {
         setIsUnlocked(true);
         if (onUnlock) onUnlock();
         // Reload the file with the unlocked data
-        if (result.data?.fileData) {
-          const binaryString = atob(result.data.fileData);
-          const bytes = new Uint8Array(binaryString.length);
-          for (let i = 0; i < binaryString.length; i++) {
-            bytes[i] = binaryString.charCodeAt(i);
+        const unlockedSource = result.data?.filePath || result.data?.fileData;
+        if (unlockedSource) {
+          const setUnlockedUrl = (url) => {
+            setPdfUrl(url);
+            setShowPdfViewer(true);
+          };
+          try {
+            const binaryString = atob(unlockedSource);
+            const bytes = new Uint8Array(binaryString.length);
+            for (let i = 0; i < binaryString.length; i++) {
+              bytes[i] = binaryString.charCodeAt(i);
+            }
+            const blob = new Blob([bytes], { type: 'application/pdf' });
+            setUnlockedUrl(URL.createObjectURL(blob));
+          } catch {
+            setUnlockedUrl(unlockedSource);
           }
-          const blob = new Blob([bytes], { type: 'application/pdf' });
-          const url = URL.createObjectURL(blob);
-          setPdfUrl(url);
-          setShowPdfViewer(true);
         }
       }
     } catch (err) {
@@ -268,8 +275,14 @@ const ImagePreview = ({ file, isPasswordProtected, onUnlock }) => {
       if (result.success) {
         setIsUnlocked(true);
         if (onUnlock) onUnlock();
-        if (result.data?.fileData) {
-          setPreview(`data:${file.type};base64,${result.data.fileData}`);
+        const unlockedSource = result.data?.filePath || result.data?.fileData;
+        if (unlockedSource) {
+          try {
+            const decoded = atob(unlockedSource);
+            setPreview(`data:${file.type};base64,${unlockedSource}`);
+          } catch {
+            setPreview(unlockedSource);
+          }
         }
       }
     } catch (err) {
@@ -407,12 +420,13 @@ const TextPreview = ({ file, isPasswordProtected, onUnlock }) => {
       if (result.success) {
         setIsUnlocked(true);
         if (onUnlock) onUnlock();
-        if (result.data?.fileData) {
+        const unlockedSource = result.data?.filePath || result.data?.fileData;
+        if (unlockedSource) {
           try {
-            const decoded = atob(result.data.fileData);
+            const decoded = atob(unlockedSource);
             setContent(decoded);
           } catch {
-            setContent(result.data.fileData);
+            setContent(unlockedSource);
           }
         }
       }
@@ -539,15 +553,19 @@ const VideoPreview = ({ file, onDownload, isPasswordProtected, onUnlock }) => {
       if (result.success) {
         setIsUnlocked(true);
         if (onUnlock) onUnlock();
-        if (result.data?.fileData) {
-          const binaryString = atob(result.data.fileData);
-          const bytes = new Uint8Array(binaryString.length);
-          for (let i = 0; i < binaryString.length; i++) {
-            bytes[i] = binaryString.charCodeAt(i);
+        const videoSource = result.data?.filePath || result.data?.fileData;
+        if (videoSource) {
+          try {
+            const binaryString = atob(videoSource);
+            const bytes = new Uint8Array(binaryString.length);
+            for (let i = 0; i < binaryString.length; i++) {
+              bytes[i] = binaryString.charCodeAt(i);
+            }
+            const blob = new Blob([bytes], { type: file.type });
+            setVideoUrl(URL.createObjectURL(blob));
+          } catch {
+            setVideoUrl(videoSource);
           }
-          const blob = new Blob([bytes], { type: file.type });
-          const url = URL.createObjectURL(blob);
-          setVideoUrl(url);
         }
       }
     } catch (err) {
@@ -673,15 +691,19 @@ const AudioPreview = ({ file, isPasswordProtected, onUnlock }) => {
       if (result.success) {
         setIsUnlocked(true);
         if (onUnlock) onUnlock();
-        if (result.data?.fileData) {
-          const binaryString = atob(result.data.fileData);
-          const bytes = new Uint8Array(binaryString.length);
-          for (let i = 0; i < binaryString.length; i++) {
-            bytes[i] = binaryString.charCodeAt(i);
+        const audioSource = result.data?.filePath || result.data?.fileData;
+        if (audioSource) {
+          try {
+            const binaryString = atob(audioSource);
+            const bytes = new Uint8Array(binaryString.length);
+            for (let i = 0; i < binaryString.length; i++) {
+              bytes[i] = binaryString.charCodeAt(i);
+            }
+            const blob = new Blob([bytes], { type: file.type });
+            setAudioUrl(URL.createObjectURL(blob));
+          } catch {
+            setAudioUrl(audioSource);
           }
-          const blob = new Blob([bytes], { type: file.type });
-          const url = URL.createObjectURL(blob);
-          setAudioUrl(url);
         }
       }
     } catch (err) {
@@ -870,11 +892,18 @@ export default function ViewDocument() {
       setLoading(true);
       try {
         const result = await getFile(fileId);
-        setFile(result.data);
-        if (result.data.qrCode) {
-          setQrCodeUrl(result.data.qrCode);
+        const data = result.data || {};
+        const normalized = {
+          ...data,
+          id: data.id || data._id,
+          url: data.filePath || data.url || data.content || (data.fileData ? `data:${data.type};base64,${data.fileData}` : undefined),
+          uploadDate: data.uploadDate || data.createdAt
+        };
+        setFile(normalized);
+        if (normalized.qrCode) {
+          setQrCodeUrl(normalized.qrCode);
         }
-        if (!result.data.requirePassword) {
+        if (!normalized.requirePassword) {
           setIsUnlocked(true);
         }
       } catch (err) {
@@ -1227,7 +1256,6 @@ export default function ViewDocument() {
               <FiExternalLink className="mr-2" /> Open Link
             </Button>
           </div>
-        </div>
       </Modal>
 
       {/* QR Modal */}
