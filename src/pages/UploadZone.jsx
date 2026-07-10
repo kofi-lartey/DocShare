@@ -505,12 +505,12 @@ export default function UploadZone() {
                   <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Shareable Link</p>
                   <div className="flex items-center gap-2 bg-white dark:bg-gray-900 p-2 rounded-xl border border-gray-200 dark:border-gray-700">
                     <code className="flex-1 px-3 py-2 text-sm font-mono text-gray-700 dark:text-gray-300 truncate">
-                      {successData.shareableLink}
+                      {successData.shareableUrl || successData.shareableLink}
                     </code>
                     <Button 
                       size="sm" 
                       variant="primary" 
-                      onClick={() => handleCopyLink(successData.shareableLink)}
+                      onClick={() => handleCopyLink(successData.shareableUrl || successData.shareableLink)}
                       className="flex-shrink-0"
                     >
                       <FiCopy className="w-4 h-4" />
@@ -521,7 +521,7 @@ export default function UploadZone() {
                 {generateQR && (
                   <div className="flex justify-center pt-4">
                     <div className="bg-white dark:bg-gray-900 p-6 rounded-2xl border-2 border-gray-200 dark:border-gray-700 shadow-lg">
-                      <QRCodeSVG value={successData.shareableLink} size={180} />
+                      <QRCodeSVG value={successData.shareableUrl || successData.shareableLink} size={180} />
                     </div>
                   </div>
                 )}

@@ -1041,7 +1041,7 @@ export default function ViewDocument() {
 
               {/* File Actions */}
               <div className="flex flex-wrap gap-3 mt-6 pt-6 border-t border-gray-200/50 dark:border-gray-700/50">
-                <Button size="sm" variant="outline" onClick={() => handleCopy(file?.shareableLink)}>
+                <Button size="sm" variant="outline" onClick={() => handleCopy(file?.shareableUrl || file?.shareableLink)}>
                   <FiCopy className="mr-2" /> Copy Link
                 </Button>
                 <Button size="sm" variant="outline" onClick={() => setShowQR(true)}>
@@ -1068,10 +1068,10 @@ export default function ViewDocument() {
                     <label className="block text-sm text-gray-500 mb-1">Shareable Link</label>
                     <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-800/50 p-2 rounded-xl border border-gray-200 dark:border-gray-700">
                       <code className="flex-1 px-2 py-1 text-xs font-mono text-gray-700 dark:text-gray-300 truncate">
-                        {file?.shareableLink}
+                        {file?.shareableUrl || file?.shareableLink}
                       </code>
                       <button 
-                        onClick={() => handleCopy(file?.shareableLink)}
+                        onClick={() => handleCopy(file?.shareableUrl || file?.shareableLink)}
                         className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors"
                       >
                         <FiCopy className="w-4 h-4 text-gray-500" />
@@ -1213,9 +1213,10 @@ export default function ViewDocument() {
               {qrCodeUrl ? (
                 <img src={qrCodeUrl} alt="QR Code" className="w-44 h-44" />
               ) : (
-                <QRCodeSVG value={file?.shareableLink} size={180} />
+                <QRCodeSVG value={file?.shareableUrl || file?.shareableLink} size={180} />
               )}
             </div>
+          </div>
           </div>
 
           <div className="flex gap-3">
@@ -1236,7 +1237,7 @@ export default function ViewDocument() {
             {qrCodeUrl ? (
               <img src={qrCodeUrl} alt="QR Code" className="w-48 h-48" />
             ) : (
-              <QRCodeSVG value={file?.shareableLink ? `${window.location.origin}/view/${file.shareableLink}` : file?.shareableLink} size={180} />
+              <QRCodeSVG value={file?.shareableUrl || file?.shareableLink} size={180} />
             )}
           </div>
           <p className="mt-4 text-sm text-gray-500">Scan to view this document</p>
@@ -1244,7 +1245,7 @@ export default function ViewDocument() {
             size="sm" 
             variant="outline" 
             className="mt-4"
-            onClick={() => handleCopy(file?.shareableLink)}
+            onClick={() => handleCopy(file?.shareableUrl || file?.shareableLink)}
           >
             <FiCopy className="mr-2" /> Copy Link
           </Button>

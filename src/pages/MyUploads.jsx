@@ -364,7 +364,7 @@ export default function MyUploads() {
                 
                 <div className="col-span-1 flex items-center justify-end gap-1">
                   <button 
-                    onClick={() => handleCopyLink(file.shareableLink)} 
+                    onClick={() => handleCopyLink(file.shareableUrl || file.shareableLink)} 
                     className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
                     title="Copy link"
                   >
@@ -432,7 +432,7 @@ export default function MyUploads() {
               
               <div className="flex justify-center gap-2 mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
                 <button 
-                  onClick={() => handleCopyLink(file.shareableLink)} 
+                  onClick={() => handleCopyLink(file.shareableUrl || file.shareableLink)} 
                   className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 hover:text-gray-700 transition-colors"
                   title="Copy link"
                 >
@@ -492,25 +492,25 @@ export default function MyUploads() {
          </div>
        </Card>
 
-       {/* QR Code Modal */}
-       <Modal isOpen={!!qrFile} onClose={() => setQrFile(null)} title="QR Code">
-         {qrFile && (
-           <div className="text-center">
-             <div className="p-6 bg-white dark:bg-gray-800 rounded-2xl inline-block">
-               <QRCodeSVG value={qrFile.shareableLink} size={200} className="mx-auto" />
-             </div>
-             <p className="mt-4 font-medium text-gray-900 dark:text-white">{qrFile.name}</p>
-             <p className="text-sm text-gray-500">Scan to view document</p>
-             <button 
-               onClick={() => handleCopyLink(qrFile.shareableLink)}
-               className="mt-4 inline-flex items-center gap-2 px-4 py-2 text-sm text-blue-600 hover:text-blue-700 font-medium"
-             >
-               <FiCopy className="w-4 h-4" />
-               Copy link
-             </button>
-           </div>
-         )}
-       </Modal>
+        {/* QR Code Modal */}
+        <Modal isOpen={!!qrFile} onClose={() => setQrFile(null)} title="QR Code">
+          {qrFile && (
+            <div className="text-center">
+              <div className="p-6 bg-white dark:bg-gray-800 rounded-2xl inline-block">
+                <QRCodeSVG value={qrFile.shareableUrl || qrFile.shareableLink} size={200} className="mx-auto" />
+              </div>
+              <p className="mt-4 font-medium text-gray-900 dark:text-white">{qrFile.name}</p>
+              <p className="text-sm text-gray-500">Scan to view document</p>
+              <button 
+                onClick={() => handleCopyLink(qrFile.shareableUrl || qrFile.shareableLink)}
+                className="mt-4 inline-flex items-center gap-2 px-4 py-2 text-sm text-blue-600 hover:text-blue-700 font-medium"
+              >
+                <FiCopy className="w-4 h-4" />
+                Copy link
+              </button>
+            </div>
+          )}
+        </Modal>
 
        {/* Delete Confirmation Modal */}
        <Modal 
