@@ -20,6 +20,7 @@ import { cn, formatFileSize } from '../utils/helpers';
 import Button from '../components/common/Button';
 import { Card } from '../components/common/Card';
 import { Modal } from '../components/common/Modal';
+import ImageLoader from '../components/common/ImageLoader';
 import { QRCodeSVG } from 'qrcode.react';
 
 const uploadSchema = z.object({
@@ -142,7 +143,7 @@ const FilePreview = ({ file, onRemove, uploading }) => {
       if (isLoading) {
         return (
           <div className="flex items-center justify-center h-32">
-            <div className="animate-spin w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full"></div>
+            <ImageLoader size="sm" />
           </div>
         );
       }

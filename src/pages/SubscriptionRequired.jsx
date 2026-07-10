@@ -16,7 +16,7 @@ import Button from '../components/common/Button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '../components/common/Card';
 import { Modal } from '../components/common/Modal';
 import { Badge } from '../components/common/Badge';
-import { Spinner } from '../components/common/Spinner';
+import ImageLoader from '../components/common/ImageLoader';
 import { useNotification } from '../contexts/NotificationContext';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -199,10 +199,7 @@ export default function SubscriptionRequired() {
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900">
-        <div className="relative">
-          <div className="w-16 h-16 border-4 border-blue-200 dark:border-blue-800 rounded-full"></div>
-          <div className="absolute top-0 left-0 w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-        </div>
+        <ImageLoader size="lg" />
         <p className="mt-4 text-sm text-gray-500 dark:text-gray-400">Verifying your subscription...</p>
       </div>
     );
@@ -214,9 +211,7 @@ export default function SubscriptionRequired() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <Link to="/" className="flex items-center gap-2">
-              <div className="w-9 h-9 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center">
-                <span className="text-white font-bold text-sm">DS</span>
-              </div>
+              <BrandLogo size="sm" />
               <span className="text-xl font-extrabold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                 DocShare Pro
               </span>

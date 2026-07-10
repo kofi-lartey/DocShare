@@ -19,6 +19,7 @@ import {
   CardContent,
   CardFooter
 } from '../components/common/Card';
+import BrandLogo from '../components/common/BrandLogo';
 
 // ==================== Constants ====================
 const REGISTER_SCHEMA = z.object({
@@ -64,12 +65,7 @@ const BackgroundDecorations = () => (
 // Logo Component
 const Logo = () => (
   <Link to="/" className="inline-flex items-center gap-3 group">
-    <div className="relative">
-      <div className="w-14 h-14 bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/25 group-hover:scale-110 transition-transform">
-        <span className="text-white font-bold text-2xl">DS</span>
-      </div>
-      <div className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-white dark:border-gray-900 animate-pulse"></div>
-    </div>
+    <BrandLogo size="xl" />
     <div className="text-left">
       <span className="block text-2xl font-extrabold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
         DocShare Pro

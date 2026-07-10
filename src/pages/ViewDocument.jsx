@@ -16,6 +16,8 @@ import Button from '../components/common/Button';
 import { Badge } from '../components/common/Badge';
 import { Card, CardHeader, CardContent } from '../components/common/Card';
 import { Modal } from '../components/common/Modal';
+import ImageLoader from '../components/common/ImageLoader';
+import BrandLogo from '../components/common/BrandLogo';
 import { QRCodeSVG } from 'qrcode.react';
 import { cn } from '../utils/helpers';
 
@@ -529,7 +531,7 @@ const TextPreview = ({ file, isPasswordProtected, onUnlock }) => {
   if (loading) {
     return (
       <div className="bg-gray-900 dark:bg-gray-950 rounded-xl p-8 min-h-[400px] flex items-center justify-center">
-        <div className="animate-spin w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full"></div>
+        <ImageLoader size="md" />
       </div>
     );
   }
@@ -1038,10 +1040,7 @@ export default function ViewDocument() {
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px]">
-        <div className="relative">
-          <div className="w-16 h-16 border-4 border-blue-200 dark:border-blue-800 rounded-full"></div>
-          <div className="absolute top-0 left-0 w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-        </div>
+        <ImageLoader size="lg" />
         <p className="mt-4 text-sm text-gray-500 dark:text-gray-400">Loading document...</p>
       </div>
     );
@@ -1074,14 +1073,12 @@ export default function ViewDocument() {
               <Link to="/dashboard" className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors">
                 <FiArrowLeft className="w-5 h-5 text-gray-600 dark:text-gray-400" />
               </Link>
-              <Link to="/" className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20">
-                  <FiEye className="text-white" size={18} />
-                </div>
-                <span className="text-lg font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                  DocShare Pro
-                </span>
-              </Link>
+               <Link to="/" className="flex items-center gap-2">
+                 <BrandLogo size="xs" />
+                 <span className="text-lg font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                   DocShare Pro
+                 </span>
+               </Link>
             </div>
             <div className="flex items-center gap-3">
               {/* Mobile Sidebar Toggle */}

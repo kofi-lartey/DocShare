@@ -11,6 +11,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useNotification } from '../../contexts/NotificationContext';
 import { cn } from '../../utils/helpers';
+import BrandLogo from '../../components/common/BrandLogo';
 
 const mainNavItems = [
   { path: '/dashboard', label: 'Dashboard', icon: FiHome },
@@ -82,21 +83,14 @@ export default function Sidebar() {
       )}>
         {!isCollapsed ? (
           <div className="flex items-center gap-3">
-            <div className="relative">
-              <div className="w-9 h-9 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20">
-                <span className="text-white font-bold text-lg">D</span>
-              </div>
-              <div className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-white dark:border-gray-900 animate-pulse"></div>
-            </div>
+            <BrandLogo size="md" />
             <div>
               <span className="text-xl font-bold text-gray-900 dark:text-white">DocShare</span>
               <span className="ml-1 text-xs font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-1.5 py-0.5 rounded">PRO</span>
             </div>
           </div>
         ) : (
-          <div className="w-9 h-9 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20">
-            <span className="text-white font-bold text-lg">D</span>
-          </div>
+          <BrandLogo size="md" />
         )}
       </div>
 

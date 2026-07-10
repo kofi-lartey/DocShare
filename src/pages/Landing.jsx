@@ -11,6 +11,7 @@ import { RiQrCodeLine } from 'react-icons/ri';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { PRICING_PLANS } from '../utils/constants';
+import BrandLogo from '../components/common/BrandLogo';
 
 const Landing = () => {
   // Hero Image Placeholder - Replace with actual images
@@ -146,12 +147,7 @@ const Landing = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16 items-center">
             <Link to="/" className="flex items-center gap-2 group">
-              <div className="relative">
-                <div className="w-9 h-9 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/25 group-hover:scale-110 transition-transform">
-                  <span className="text-white font-bold text-sm">DS</span>
-                </div>
-                <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white dark:border-gray-900 animate-pulse"></div>
-              </div>
+              <BrandLogo size="md" />
               <span className="text-xl font-extrabold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                 DocShare Pro
               </span>
@@ -641,9 +637,7 @@ const Landing = () => {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-12">
             <div className="col-span-2 md:col-span-1">
               <div className="flex items-center gap-2 mb-4">
-                <div className="w-9 h-9 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center">
-                  <span className="text-white font-bold text-sm">DS</span>
-                </div>
+                <BrandLogo size="sm" />
                 <span className="text-lg font-bold">DocShare Pro</span>
               </div>
               <p className="text-gray-400 text-sm leading-relaxed">

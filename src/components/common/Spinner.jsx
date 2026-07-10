@@ -1,4 +1,5 @@
 import { cn } from '../../utils/helpers';
+import ImageLoader from './ImageLoader';
 
 export function Spinner({ size = 'md', className = '' }) {
   const sizes = {
@@ -22,7 +23,7 @@ export function LoadingSkeleton({ className = '' }) {
 export function PageLoader() {
   return (
     <div className="flex items-center justify-center min-h-[400px]">
-      <Spinner size="lg" />
+      <ImageLoader size="lg" />
     </div>
   );
 }

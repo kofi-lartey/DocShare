@@ -13,8 +13,8 @@ import StatCard from '../components/dashboard/StatCard';
 import RecentActivity from '../components/dashboard/RecentActivity';
 import QuickActions from '../components/dashboard/QuickActions';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '../components/common/Card';
-import { Spinner } from '../components/common/Spinner';
 import { Badge } from '../components/common/Badge';
+import ImageLoader from '../components/common/ImageLoader';
 import { formatDate, formatFileSize } from '../utils/helpers';
 
 // Enhanced Stat Card Component
@@ -267,10 +267,7 @@ export default function DashboardOverview() {
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px]">
-        <div className="relative">
-          <div className="w-16 h-16 border-4 border-blue-200 dark:border-blue-800 rounded-full"></div>
-          <div className="absolute top-0 left-0 w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-        </div>
+        <ImageLoader size="lg" />
         <p className="mt-4 text-sm text-gray-500 dark:text-gray-400">Loading your dashboard...</p>
       </div>
     );

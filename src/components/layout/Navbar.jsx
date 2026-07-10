@@ -8,6 +8,7 @@ import {
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
 import { getNotifications } from '../../services/api';
+import BrandLogo from '../../components/common/BrandLogo';
 
 export default function Navbar({ onMenuClick, isMobile, sidebarOpen }) {
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -80,9 +81,7 @@ export default function Navbar({ onMenuClick, isMobile, sidebarOpen }) {
           
           {/* Mobile Logo */}
           <Link to="/dashboard" className="lg:hidden flex items-center gap-2">
-            <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-xs">DS</span>
-            </div>
+            <BrandLogo size="sm" />
             <span className="text-sm font-bold text-gray-900 dark:text-white">DocShare</span>
           </Link>
 

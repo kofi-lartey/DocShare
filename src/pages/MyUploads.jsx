@@ -15,6 +15,7 @@ import { Badge } from '../components/common/Badge';
 import Button from '../components/common/Button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '../components/common/Card';
 import { Modal } from '../components/common/Modal';
+import ImageLoader from '../components/common/ImageLoader';
 import { QRCodeSVG } from 'qrcode.react';
 
 const getFileIcon = (type) => {
@@ -116,10 +117,7 @@ export default function MyUploads() {
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px]">
-        <div className="relative">
-          <div className="w-16 h-16 border-4 border-blue-200 dark:border-blue-800 rounded-full"></div>
-          <div className="absolute top-0 left-0 w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-        </div>
+        <ImageLoader size="lg" />
         <p className="mt-4 text-sm text-gray-500 dark:text-gray-400">Loading your files...</p>
       </div>
     );

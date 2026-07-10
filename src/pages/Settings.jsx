@@ -18,7 +18,6 @@ import Input from '../components/common/Input';
 import Button from '../components/common/Button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '../components/common/Card';
 import { Badge } from '../components/common/Badge';
-import { Spinner } from '../components/common/Spinner';
 
 // Tab configuration
 const tabs = [

@@ -4,6 +4,7 @@ import { confirmEmail } from '../services/api';
 import { useNotification } from '../contexts/NotificationContext';
 import { Card } from '../components/common/Card';
 import Button from '../components/common/Button';
+import ImageLoader from '../components/common/ImageLoader';
 
 export default function ConfirmEmail() {
   const { token } = useParams();
@@ -26,7 +27,7 @@ export default function ConfirmEmail() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
         <Card className="text-center">
-          <div className="animate-spin h-8 w-8 border-4 border-primary-600 border-t-transparent rounded-full mx-auto"></div>
+          <ImageLoader size="md" className="mx-auto" />
           <p className="mt-4 text-gray-600 dark:text-gray-400">Confirming your email...</p>
         </Card>
       </div>
