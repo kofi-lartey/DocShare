@@ -15,6 +15,7 @@ import { Badge } from '../components/common/Badge';
 import Button from '../components/common/Button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '../components/common/Card';
 import { Modal } from '../components/common/Modal';
+import ShareModal from '../components/common/ShareModal';
 import ImageLoader from '../components/common/ImageLoader';
 import { QRCodeSVG } from 'qrcode.react';
 
@@ -43,6 +44,7 @@ export default function MyUploads() {
   const [sort, setSort] = useState('date-desc');
   const [qrFile, setQrFile] = useState(null);
   const [fileToDelete, setFileToDelete] = useState(null);
+  const [shareFile, setShareFile] = useState(null);
   const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState('list'); // 'grid' or 'list'
@@ -368,22 +370,29 @@ export default function MyUploads() {
                   >
                     <FiEye className="w-4 h-4" />
                   </button>
-                  <button 
-                    onClick={() => handleCopyLink(file.shareableUrl || file.shareableLink)} 
-                    className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
-                    title="Copy link"
-                  >
-                    <FiCopy className="w-4 h-4" />
-                  </button>
-                  <button 
-                    onClick={() => setQrFile(file)} 
-                    className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
-                    title="QR Code"
-                  >
-                    <FiCode className="w-4 h-4" />
-                  </button>
-                  <button 
-                     onClick={() => setFileToDelete(file)} 
+                   <button 
+                     onClick={() => handleCopyLink(file.shareableUrl || file.shareableLink)} 
+                     className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+                     title="Copy link"
+                   >
+                     <FiCopy className="w-4 h-4" />
+                   </button>
+                   <button 
+                     onClick={() => setShareFile(file)} 
+                     className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 hover:text-blue-600 transition-colors"
+                     title="Share"
+                   >
+                     <FiShare2 className="w-4 h-4" />
+                   </button>
+                   <button 
+                     onClick={() => setQrFile(file)} 
+                     className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+                     title="QR Code"
+                   >
+                     <FiCode className="w-4 h-4" />
+                   </button>
+                   <button 
+                      onClick={() => setFileToDelete(file)} 
                      className="p-1.5 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/20 text-gray-500 hover:text-red-600 transition-colors"
                      title="Delete"
                    >
@@ -443,22 +452,29 @@ export default function MyUploads() {
                 >
                   <FiEye className="w-4 h-4" />
                 </button>
-                <button 
-                  onClick={() => handleCopyLink(file.shareableUrl || file.shareableLink)} 
-                  className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 hover:text-gray-700 transition-colors"
-                  title="Copy link"
-                >
-                  <FiCopy className="w-4 h-4" />
-                </button>
-                <button 
-                  onClick={() => setQrFile(file)} 
-                  className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 hover:text-gray-700 transition-colors"
-                  title="QR Code"
-                >
-                  <FiCode className="w-4 h-4" />
-                </button>
-                <button 
-                   onClick={() => setFileToDelete(file)} 
+                 <button 
+                   onClick={() => handleCopyLink(file.shareableUrl || file.shareableLink)} 
+                   className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 hover:text-gray-700 transition-colors"
+                   title="Copy link"
+                 >
+                   <FiCopy className="w-4 h-4" />
+                 </button>
+                 <button 
+                   onClick={() => setShareFile(file)} 
+                   className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 hover:text-blue-600 transition-colors"
+                   title="Share"
+                 >
+                   <FiShare2 className="w-4 h-4" />
+                 </button>
+                 <button 
+                   onClick={() => setQrFile(file)} 
+                   className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 hover:text-gray-700 transition-colors"
+                   title="QR Code"
+                 >
+                   <FiCode className="w-4 h-4" />
+                 </button>
+                 <button 
+                    onClick={() => setFileToDelete(file)} 
                    className="p-2 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/20 text-gray-500 hover:text-red-600 transition-colors"
                    title="Delete"
                  >
@@ -524,9 +540,16 @@ export default function MyUploads() {
           )}
         </Modal>
 
-       {/* Delete Confirmation Modal */}
-       <Modal 
-         isOpen={!!fileToDelete || isBulkDelete} 
+        {/* Share Modal */}
+        <ShareModal
+          isOpen={!!shareFile}
+          onClose={() => setShareFile(null)}
+          url={shareFile?.shareableUrl || shareFile?.shareableLink}
+        />
+
+        {/* Delete Confirmation Modal */}
+        <Modal 
+          isOpen={!!fileToDelete || isBulkDelete} 
          onClose={() => {
            setFileToDelete(null);
            setIsBulkDelete(false);

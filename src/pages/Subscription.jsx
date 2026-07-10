@@ -14,7 +14,7 @@ import { loadStripe } from '@stripe/stripe-js';
 import { useNotification } from '../contexts/NotificationContext';
 import { useAuth } from '../contexts/AuthContext';
 import { PRICING_PLANS } from '../utils/constants';
-import { cn, formatDate } from '../utils/helpers';
+import { cn, formatDate, formatFileSize } from '../utils/helpers';
 import Button from '../components/common/Button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '../components/common/Card';
 import { Modal } from '../components/common/Modal';
@@ -394,20 +394,20 @@ Period End,${invoice.billingPeriod?.end ? new Date(invoice.billingPeriod.end).to
                   </p>
                 )}
               </div>
-              <div className="text-center">
+               <div className="text-center">
                 <p className="text-3xl font-bold text-gray-900 dark:text-white">
-                  {subscription.usage?.storage || 0} GB
+                  {formatFileSize(subscription.usage?.storage || 0)}
                 </p>
                 <p className="text-sm text-gray-500">Storage</p>
                 <div className="mt-1 h-1 bg-gray-200 dark:bg-gray-700 rounded-full">
                   <div 
                     className="h-full bg-purple-600 rounded-full"
-                    style={{ width: `${Math.min((subscription.usage?.storage || 0) / (currentPlanData.maxStorage || 50) * 100, 100)}%` }}
+                    style={{ width: currentPlanData.maxStorage === Infinity ? '0%' : `${Math.min((subscription.usage?.storage || 0) / (currentPlanData.maxStorage * 1024 * 1024 * 1024) * 100, 100)}%` }}
                   />
                 </div>
-                {currentPlanData.maxStorage && (
+                {currentPlanData.maxStorage && currentPlanData.maxStorage !== Infinity && (
                   <p className="text-xs text-gray-400 mt-1">
-                    {subscription.usage?.storage || 0} / {currentPlanData.maxStorage === Infinity ? '∞' : `${currentPlanData.maxStorage} GB`}
+                    {formatFileSize(subscription.usage?.storage || 0)} / {currentPlanData.maxStorage} GB
                   </p>
                 )}
               </div>

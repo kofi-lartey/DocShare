@@ -18,7 +18,7 @@ import ImageLoader from '../components/common/ImageLoader';
 import { formatDate, formatFileSize } from '../utils/helpers';
 
 // Enhanced Stat Card Component
-const EnhancedStatCard = ({ title, value, subtitle, icon: Icon, color, trend, trendLabel }) => {
+const EnhancedStatCard = ({ title, value, subtitle, icon: Icon, color, trend, trendLabel, progressValue, progressMax }) => {
   const colors = {
     blue: 'from-blue-500 to-blue-600 bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800',
     green: 'from-green-500 to-green-600 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800',
@@ -73,13 +73,17 @@ const EnhancedStatCard = ({ title, value, subtitle, icon: Icon, color, trend, tr
         </div>
         
         {/* Progress bar for storage */}
-        {title === 'Storage Used' && (
+        {title === 'Storage Used' && progressValue !== undefined && (
           <div className="mt-4">
             <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
               <motion.div 
                 className="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full"
                 initial={{ width: 0 }}
-                animate={{ width: `${(parseFloat(value) / 10) * 100}%` }}
+                animate={{ 
+                  width: progressMax && progressMax !== Infinity 
+                    ? `${Math.min((progressValue / progressMax) * 100, 100)}%` 
+                    : '0%' 
+                }}
                 transition={{ duration: 1, delay: 0.5 }}
               />
             </div>
@@ -122,28 +126,28 @@ const ActivityItem = ({ activity }) => {
       <div className="p-2 rounded-lg bg-white dark:bg-gray-800 shadow-sm">
         {getActivityIcon(activity.type)}
       </div>
-      <div className="flex-1 min-w-0">
-        <p className="font-medium text-gray-900 dark:text-white truncate">
-          {activity.description}
-        </p>
-        <p className="text-sm text-gray-500">
-          {activity.fileName && (
-            <span className="font-medium">{activity.fileName}</span>
+        <div className="flex-1 min-w-0">
+          <p className="font-medium text-gray-900 dark:text-white truncate">
+            {activity.description}
+          </p>
+          <p className="text-sm text-gray-500">
+            {activity.fileName && (
+              <span className="font-medium">{activity.fileName}</span>
+            )}
+            {activity.fileName && activity.user && ' • '}
+            {activity.user && (
+              <span>by {activity.user}</span>
+            )}
+          </p>
+        </div>
+        <div className="flex flex-col items-end gap-1">
+          <span className="text-xs text-gray-400">{formatDate(activity.createdAt)}</span>
+          {activity.status && (
+            <Badge variant={activity.status === 'success' ? 'success' : 'warning'} size="sm">
+              {activity.status}
+            </Badge>
           )}
-          {activity.fileName && activity.user && ' • '}
-          {activity.user && (
-            <span>by {activity.user}</span>
-          )}
-        </p>
-      </div>
-      <div className="flex flex-col items-end gap-1">
-        <span className="text-xs text-gray-400">{formatDate(activity.timestamp)}</span>
-        {activity.status && (
-          <Badge variant={activity.status === 'success' ? 'success' : 'warning'} size="sm">
-            {activity.status}
-          </Badge>
-        )}
-      </div>
+        </div>
     </motion.div>
   );
 };
@@ -248,20 +252,20 @@ export default function DashboardOverview() {
       href: '/dashboard/my-uploads',
       color: 'purple'
     },
-    {
-      icon: FiUsers,
-      label: 'Team Members',
-      description: 'Manage your team',
-      href: '/dashboard/settings',
-      color: 'green'
-    },
-    {
-      icon: FiBarChart2,
-      label: 'Analytics',
-      description: 'View detailed stats',
-      href: '/dashboard/analytics',
-      color: 'orange'
-    }
+    // {
+    //   icon: FiUsers,
+    //   label: 'Team Members',
+    //   description: 'Manage your team',
+    //   href: '/dashboard/settings',
+    //   color: 'green'
+    // },
+    // {
+    //   icon: FiBarChart2,
+    //   label: 'Analytics',
+    //   description: 'View detailed stats',
+    //   href: '/dashboard/analytics',
+    //   color: 'orange'
+    // }
   ];
 
   if (loading) {
@@ -343,10 +347,12 @@ export default function DashboardOverview() {
          />
          <EnhancedStatCard
            title="Storage Used"
-           value={`${stats.storageUsed} GB`}
-           subtitle={`of ${stats.storageLimit} GB`}
+           value={formatFileSize(stats.storageUsed)}
+           subtitle={`of ${formatFileSize(stats.storageLimit)}`}
            icon={FiHardDrive}
            color="purple"
+           progressValue={stats.storageUsed}
+           progressMax={stats.storageLimit}
          />
          <EnhancedStatCard
            title="Active Links"
@@ -366,13 +372,11 @@ export default function DashboardOverview() {
               title="Recent Activity"
               subtitle="Latest actions on your documents"
               action={
-                <Link 
-                  to="/dashboard/activity" 
+                <div 
                   className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1"
                 >
-                  View all
-                  <FiArrowUp className="w-4 h-4 rotate-90" />
-                </Link>
+                  <FiRefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+                </div>
               }
               className="mb-4"
             />
@@ -452,7 +456,7 @@ export default function DashboardOverview() {
             <div>
               <p className="text-sm text-gray-500 dark:text-gray-400">Storage Used</p>
               <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                {stats.storageUsed || 0} GB
+                {formatFileSize(stats.storageUsed || 0)}
               </p>
             </div>
             <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-xl">
