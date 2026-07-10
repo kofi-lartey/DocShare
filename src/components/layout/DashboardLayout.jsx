@@ -103,7 +103,7 @@ export default function DashboardLayout() {
         {/* Footer (optional) */}
         <footer className="border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/50 px-6 py-3">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-gray-500 dark:text-gray-400">
-            <p>© {new Date().getFullYear()} DocShare Pro. All rights reserved.</p>
+            <p>© {new Date().getFullYear()} DocShare Pro. All rights reserved. Designed by kofilartey</p>
             <div className="flex items-center gap-4">
               <Link to="/privacy" className="hover:text-gray-700 dark:hover:text-gray-300 transition-colors">Privacy</Link>
               <Link to="/terms" className="hover:text-gray-700 dark:hover:text-gray-300 transition-colors">Terms</Link>

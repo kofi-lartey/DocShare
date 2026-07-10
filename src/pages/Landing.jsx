@@ -5,12 +5,13 @@ import {
   FiShare2, FiLock, FiBarChart2, FiGithub,
   FiTwitter, FiLinkedin, FiYoutube, FiPlay, FiChevronRight,
   FiRefreshCw, FiUsers, FiFileText, FiClock, FiTrendingUp,
-  FiCamera, FiVideo, FiImage, FiPlayCircle, FiPauseCircle,
+  FiCamera, FiVideo, FiImage, FiPlayCircle, FiPauseCircle, FiMoon, FiSun,
   FiHome, FiGrid, FiDollarSign, FiMessageSquare
 } from 'react-icons/fi';
 import { RiQrCodeLine } from 'react-icons/ri';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
 import { PRICING_PLANS } from '../utils/constants';
 import BrandLogo from '../components/common/BrandLogo';
 
@@ -19,7 +20,7 @@ const Landing = () => {
   const heroImage = 'https://images.unsplash.com/photo-1586281380349-632531db7ed4?w=800&h=600&fit=crop';
   const featureImages = {
     upload: 'https://images.unsplash.com/photo-1611162616475-46b635cb6868?w=400&h=300&fit=crop',
-    qr: 'https://images.unsplash.com/photo-1598351451059-3d1be1b8493a?w=400&h=300&fit=crop',
+    qr: 'https://i0.wp.com/www.cssscript.com/wp-content/uploads/2017/11/qrize.png?fit=406%2C302&ssl=1',
     security: 'https://images.unsplash.com/photo-1563013544-824ae1b704d3?w=400&h=300&fit=crop',
     analytics: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=400&h=300&fit=crop',
   };
@@ -36,8 +37,9 @@ const Landing = () => {
   const videoRef = useRef(null);
   const heroRef = useRef(null);
   
-  // Get auth context
+  // Get auth/theme context
   const { user, isAuthenticated } = useAuth();
+  const { isDark, toggleTheme } = useTheme();
 
   // Testimonials data - populate with actual data
   const testimonials = [
@@ -171,13 +173,13 @@ const Landing = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-900 overflow-x-hidden">
+    <div className="min-h-screen bg-white text-slate-900 dark:bg-slate-950 dark:text-white transition-colors duration-300 overflow-x-hidden">
       {/* Navigation */}
       <motion.nav 
         initial={{ y: -100 }}
         animate={{ y: 0 }}
         transition={{ duration: 0.5 }}
-        className="fixed top-0 left-0 right-0 z-50 bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-800/50"
+        className="fixed top-0 left-0 right-0 z-50 bg-white/90 dark:bg-slate-950/90 backdrop-blur-xl border-b border-gray-200/50 dark:border-slate-800/50"
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16 items-center">
@@ -214,7 +216,7 @@ const Landing = () => {
                       alt={user?.fullName} 
                       className="w-9 h-9 rounded-full ring-2 ring-blue-500/20 group-hover:ring-blue-500/40 transition-all"
                     />
-                    <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-white dark:border-gray-900"></div>
+                    <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-white dark:border-slate-950"></div>
                   </div>
                   <span className="hidden lg:block text-sm font-medium text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                     {user?.fullName?.split(' ')[0]}
@@ -222,7 +224,7 @@ const Landing = () => {
                 </Link>
               ) : (
                 <>
-                  <Link to="/login" className="hidden sm:inline-block text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white font-medium px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-all">
+                  <Link to="/login" className="hidden sm:inline-block text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white font-medium px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-900 transition-all">
                     Log in
                   </Link>
                   <Link to="/register" className="relative group overflow-hidden px-4 sm:px-6 py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-medium rounded-xl hover:shadow-lg hover:shadow-blue-500/25 transition-all duration-300 text-sm sm:text-base">
@@ -235,9 +237,16 @@ const Landing = () => {
                   </Link>
                 </>
               )}
+              <button
+                onClick={toggleTheme}
+                className="p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                aria-label="Toggle theme"
+              >
+                {isDark ? <FiSun size={22} /> : <FiMoon size={22} />}
+              </button>
               <button 
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} 
-                className="md:hidden p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                className="md:hidden p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
                 aria-label="Toggle menu"
               >
                 {isMobileMenuOpen ? <FiX size={24} /> : <FiMenu size={24} />}
@@ -253,7 +262,7 @@ const Landing = () => {
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
-              className="md:hidden border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900"
+              className="md:hidden border-t border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-950"
             >
               <div className="px-4 py-4 space-y-2">
                 {/* Mobile Navigation Links */}
@@ -264,7 +273,7 @@ const Landing = () => {
                     className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors font-medium ${
                       activeSection === item.id
                         ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
-                        : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
+                        : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-900'
                     }`}
                   >
                     <item.icon className="w-5 h-5" />
@@ -272,12 +281,12 @@ const Landing = () => {
                   </button>
                 ))}
                 
-                <div className="pt-4 mt-4 border-t border-gray-200 dark:border-gray-700 space-y-2">
+                <div className="pt-4 mt-4 border-t border-gray-200 dark:border-slate-800 space-y-2">
                   {!isAuthenticated && (
                     <>
                       <Link 
                         to="/login" 
-                        className="block w-full px-4 py-3 text-center text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors font-medium"
+                        className="block w-full px-4 py-3 text-center text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-900 rounded-lg transition-colors font-medium"
                         onClick={() => setIsMobileMenuOpen(false)}
                       >
                         Log in
@@ -310,7 +319,7 @@ const Landing = () => {
       {/* Hero Section with Video */}
       <section id="home" ref={heroRef} className="relative pt-24 sm:pt-32 pb-16 sm:pb-20 lg:pt-40 lg:pb-32 overflow-hidden">
         {/* Background Effects - Optimized for mobile */}
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900"></div>
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950"></div>
         <div className="absolute inset-0">
           <div className="absolute top-20 left-10 w-48 sm:w-72 h-48 sm:h-72 bg-blue-300 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
           <div className="absolute top-40 right-10 w-48 sm:w-72 h-48 sm:h-72 bg-purple-300 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
@@ -371,11 +380,11 @@ const Landing = () => {
               <motion.div variants={fadeInUp} className="mt-6 flex items-center gap-4 sm:gap-6">
                 <div className="flex -space-x-2">
                   {[1, 2, 3, 4].map((i) => (
-                    <div key={i} className="w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 border-white dark:border-gray-800 bg-gradient-to-br from-gray-300 to-gray-400 flex items-center justify-center text-xs font-medium text-gray-700">
+                    <div key={i} className="w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 border-white dark:border-slate-800 bg-gradient-to-br from-gray-300 to-gray-400 flex items-center justify-center text-xs font-medium text-gray-700">
                       {String.fromCharCode(65 + i)}
                     </div>
                   ))}
-                  <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 border-white dark:border-gray-800 bg-blue-600 flex items-center justify-center text-xs font-medium text-white">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 border-white dark:border-slate-800 bg-blue-600 flex items-center justify-center text-xs font-medium text-white">
                     +2K
                   </div>
                 </div>
@@ -393,7 +402,7 @@ const Landing = () => {
               transition={{ duration: 0.6, delay: 0.3 }}
               className="order-1 lg:order-2"
             >
-              <div className="relative bg-white dark:bg-gray-800 rounded-2xl sm:rounded-3xl shadow-2xl p-3 sm:p-4 border border-gray-200 dark:border-gray-700 overflow-hidden">
+              <div className="relative bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl shadow-2xl p-3 sm:p-4 border border-gray-200 dark:border-slate-800 overflow-hidden">
                 {/* Video Thumbnail with Play Button */}
                 <div className="relative rounded-xl sm:rounded-2xl overflow-hidden bg-gradient-to-br from-blue-900/20 to-purple-900/20">
                   <img 
@@ -437,7 +446,7 @@ const Landing = () => {
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.8 }}
-                className="absolute -bottom-4 -right-2 sm:-bottom-6 sm:-right-6 bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl shadow-xl p-3 sm:p-4 border border-gray-200 dark:border-gray-700"
+                className="absolute -bottom-4 -right-2 sm:-bottom-6 sm:-right-6 bg-white dark:bg-slate-900 rounded-xl sm:rounded-2xl shadow-xl p-3 sm:p-4 border border-gray-200 dark:border-slate-800"
               >
                 <div className="flex items-center gap-2 sm:gap-3">
                   <div className="w-8 h-8 sm:w-10 sm:h-10 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center text-green-600">
@@ -455,7 +464,7 @@ const Landing = () => {
       </section>
 
       {/* Stats Section - Responsive grid */}
-      <section className="py-12 sm:py-16 bg-gray-50 dark:bg-gray-800/50 border-y border-gray-200 dark:border-gray-800">
+      <section className="py-12 sm:py-16 bg-gray-50 dark:bg-slate-900/50 border-y border-gray-200 dark:border-slate-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
             {stats.map((stat, index) => (
@@ -479,7 +488,7 @@ const Landing = () => {
       </section>
 
       {/* Features Section with Images - Responsive */}
-      <section id="features" className="py-16 sm:py-24 bg-white dark:bg-gray-900">
+      <section id="features" className="py-16 sm:py-24 bg-white dark:bg-slate-950">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -508,7 +517,7 @@ const Landing = () => {
                 transition={{ delay: index * 0.1 }}
                 viewport={{ once: true }}
                 whileHover={{ y: -8 }}
-                className="group relative bg-white dark:bg-gray-800 rounded-2xl sm:rounded-3xl overflow-hidden border border-gray-200 dark:border-gray-700 hover:border-blue-500 dark:hover:border-blue-400 transition-all duration-300 hover:shadow-2xl hover:shadow-blue-500/10"
+                className="group relative bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl overflow-hidden border border-gray-200 dark:border-slate-800 hover:border-blue-500 dark:hover:border-blue-400 transition-all duration-300 hover:shadow-2xl hover:shadow-blue-500/10"
               >
                 <div className="flex flex-col md:flex-row">
                   <div className="md:w-1/2 p-5 sm:p-8">
@@ -517,7 +526,7 @@ const Landing = () => {
                     </div>
                     <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white mb-1.5 sm:mb-2">{feature.title}</h3>
                     <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 leading-relaxed mb-3 sm:mb-4">{feature.description}</p>
-                    <div className="pt-3 sm:pt-4 border-t border-gray-200 dark:border-gray-700">
+                    <div className="pt-3 sm:pt-4 border-t border-gray-200 dark:border-slate-800">
                       <p className="text-[10px] sm:text-xs font-medium text-gray-500">{feature.stats}</p>
                     </div>
                   </div>
@@ -536,7 +545,7 @@ const Landing = () => {
       </section>
 
       {/* Pricing Section - Responsive */}
-      <section id="pricing" className="py-16 sm:py-24 bg-gray-50 dark:bg-gray-800/50">
+      <section id="pricing" className="py-16 sm:py-24 bg-gray-50 dark:bg-slate-900/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -565,10 +574,10 @@ const Landing = () => {
                 transition={{ delay: index * 0.1 }}
                 viewport={{ once: true }}
                 whileHover={{ y: -8 }}
-                className={`relative bg-white dark:bg-gray-800 rounded-2xl sm:rounded-3xl border-2 p-6 sm:p-8 ${
+                className={`relative bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl border-2 p-6 sm:p-8 ${
                   plan.popular 
                     ? 'border-blue-500 dark:border-blue-400 shadow-2xl shadow-blue-500/20 md:scale-105' 
-                    : 'border-gray-200 dark:border-gray-700'
+                    : 'border-gray-200 dark:border-slate-800'
                 }`}
               >
                 {plan.popular && (
@@ -617,7 +626,7 @@ const Landing = () => {
       </section>
 
       {/* Testimonials Section with Images - Responsive */}
-      <section id="testimonials" className="py-16 sm:py-24 bg-white dark:bg-gray-900">
+      <section id="testimonials" className="py-16 sm:py-24 bg-white dark:bg-slate-950">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -646,7 +655,7 @@ const Landing = () => {
                 transition={{ delay: index * 0.1 }}
                 viewport={{ once: true }}
                 whileHover={{ y: -8 }}
-                className="bg-gray-50 dark:bg-gray-800 p-6 sm:p-8 rounded-2xl sm:rounded-3xl border border-gray-200 dark:border-gray-700 hover:border-blue-500 dark:hover:border-blue-400 transition-all duration-300 hover:shadow-xl hover:shadow-blue-500/5"
+                className="bg-gray-50 dark:bg-slate-900 p-6 sm:p-8 rounded-2xl sm:rounded-3xl border border-gray-200 dark:border-slate-800 hover:border-blue-500 dark:hover:border-blue-400 transition-all duration-300 hover:shadow-xl hover:shadow-blue-500/5"
               >
                 <div className="flex gap-0.5 sm:gap-1 text-yellow-400 mb-3 sm:mb-4">
                   {[...Array(5)].map((_, i) => (
@@ -654,7 +663,7 @@ const Landing = () => {
                   ))}
                 </div>
                 <p className="text-sm sm:text-base text-gray-700 dark:text-gray-300 leading-relaxed">"{testimonial.content}"</p>
-                <div className="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-gray-200 dark:border-gray-700 flex items-center gap-3 sm:gap-4">
+                <div className="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-gray-200 dark:border-slate-800 flex items-center gap-3 sm:gap-4">
                   <img 
                     src={testimonial.avatar} 
                     alt={testimonial.name} 
@@ -710,7 +719,7 @@ const Landing = () => {
       </section>
 
       {/* Footer - Responsive */}
-      <footer className="bg-gray-900 dark:bg-black text-white py-12 sm:py-16">
+      <footer className="bg-slate-950 dark:bg-[#04060e] text-white py-12 sm:py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-8 sm:gap-12">
             <div className="col-span-2 sm:col-span-2 md:col-span-1">
@@ -761,7 +770,7 @@ const Landing = () => {
           </div>
           
           <div className="border-t border-gray-800 mt-8 sm:mt-12 pt-6 sm:pt-8 flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-4">
-            <p className="text-xs sm:text-sm text-gray-500">© {new Date().getFullYear()} DocShare Pro. All rights reserved.</p>
+            <p className="text-xs sm:text-sm text-gray-500">© {new Date().getFullYear()} DocShare Pro. All rights reserved. Designed by kofilartey</p>
             <div className="flex gap-4 sm:gap-6 text-xs sm:text-sm text-gray-500">
               <Link to="/privacy" className="hover:text-gray-400 transition-colors">Privacy</Link>
               <Link to="/terms" className="hover:text-gray-400 transition-colors">Terms</Link>
