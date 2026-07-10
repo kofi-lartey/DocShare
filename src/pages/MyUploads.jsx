@@ -545,6 +545,8 @@ export default function MyUploads() {
           isOpen={!!shareFile}
           onClose={() => setShareFile(null)}
           url={shareFile?.shareableUrl || shareFile?.shareableLink}
+          documentName={shareFile?.name}
+          qrCode={shareFile?.qrCode}
         />
 
         {/* Delete Confirmation Modal */}

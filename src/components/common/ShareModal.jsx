@@ -5,55 +5,73 @@ import Button from './Button';
 import { SOCIAL_PLATFORMS } from '../../utils/socialMedia';
 import { QRCodeSVG } from 'qrcode.react';
 
-export default function ShareModal({ isOpen, onClose, url, documentName }) {
+export default function ShareModal({ isOpen, onClose, url, documentName, qrCode }) {
   const qrRef = useRef(null);
   const [shareableImage, setShareableImage] = useState(null);
   const [isGenerating, setIsGenerating] = useState(false);
 
+  // Load an image element from the provided QR data URL (preferred) or the rendered SVG
+  const loadQRImage = async () => {
+    if (qrCode) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = reject;
+        img.src = qrCode;
+      });
+    }
+    if (!qrRef.current) return null;
+    const svg = qrRef.current;
+    const svgData = new XMLSerializer().serializeToString(svg);
+    const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+    const urlObj = URL.createObjectURL(svgBlob);
+    try {
+      const img = await new Promise((resolve, reject) => {
+        const image = new Image();
+        image.onload = () => resolve(image);
+        image.onerror = reject;
+        image.src = urlObj;
+      });
+      return img;
+    } finally {
+      URL.revokeObjectURL(urlObj);
+    }
+  };
+
   // Generate a shareable image with QR code and URL text
   const generateShareableImage = async () => {
-    if (!qrRef.current) return null;
-    
     try {
       setIsGenerating(true);
-      const svg = qrRef.current;
-      const svgData = new XMLSerializer().serializeToString(svg);
-      const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
-      const urlObj = URL.createObjectURL(svgBlob);
-      
+      const img = await loadQRImage();
+      if (!img) return null;
+
       return new Promise((resolve) => {
-        const img = new Image();
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          const size = 500;
-          canvas.width = size;
-          canvas.height = size + 60; // Extra space for text
-          const ctx = canvas.getContext('2d');
-          
-          // White background
-          ctx.fillStyle = '#ffffff';
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
-          
-          // Draw QR code
-          ctx.drawImage(img, 50, 20, 400, 400);
-          
-          // Draw URL text below QR code
-          ctx.fillStyle = '#1a202c';
-          ctx.font = '12px Arial';
-          ctx.textAlign = 'center';
-          
-          // Truncate URL if too long
-          let displayUrl = url;
-          if (displayUrl.length > 50) {
-            displayUrl = displayUrl.substring(0, 47) + '...';
-          }
-          ctx.fillText(displayUrl, size / 2, size + 40);
-          
-          const pngUrl = canvas.toDataURL('image/png');
-          URL.revokeObjectURL(urlObj);
-          resolve(pngUrl);
-        };
-        img.src = urlObj;
+        const canvas = document.createElement('canvas');
+        const size = 500;
+        canvas.width = size;
+        canvas.height = size + 60; // Extra space for text
+        const ctx = canvas.getContext('2d');
+
+        // White background
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Draw QR code
+        ctx.drawImage(img, 50, 20, 400, 400);
+
+        // Draw URL text below QR code
+        ctx.fillStyle = '#1a202c';
+        ctx.font = '12px Arial';
+        ctx.textAlign = 'center';
+
+        // Truncate URL if too long
+        let displayUrl = url;
+        if (displayUrl.length > 50) {
+          displayUrl = displayUrl.substring(0, 47) + '...';
+        }
+        ctx.fillText(displayUrl, size / 2, size + 40);
+
+        resolve(canvas.toDataURL('image/png'));
       });
     } catch (error) {
       console.error('Error generating shareable image:', error);
@@ -63,32 +81,53 @@ export default function ShareModal({ isOpen, onClose, url, documentName }) {
     }
   };
 
+  // Convert the QR code data URL into a File so it can be shared as an attachment
+  const qrCodeToFile = async () => {
+    if (!qrCode) return null;
+    try {
+      const res = await fetch(qrCode);
+      const blob = await res.blob();
+      return new File([blob], `${documentName || 'document'}-qrcode.png`, { type: 'image/png' });
+    } catch (error) {
+      console.error('Error building QR file:', error);
+      return null;
+    }
+  };
+
+  // Share the document link together with the QR code as an image attachment
+  const shareWithQRFile = async (text) => {
+    const file = await qrCodeToFile();
+    if (file && navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({
+          files: [file],
+          title: documentName || 'Document',
+          text,
+          url,
+        });
+        return true;
+      } catch (error) {
+        // User cancelled or sharing failed – fall back to URL sharer
+        console.error('Native share failed:', error);
+      }
+    }
+    return false;
+  };
+
   const handleShare = async (platform) => {
     let shareUrl = platform.getShareUrl(url);
-    
-    // For WhatsApp - can include image as base64
+    let shareText = `📄 ${documentName || 'Document'}\n\n🔗 ${url}`;
+
+    // For WhatsApp
     if (platform.name === 'WhatsApp') {
-      const qrImage = await generateShareableImage();
-      if (qrImage) {
-        // WhatsApp Web doesn't support image sharing via URL,
-        // but we can include the QR code as a link with preview
-        const message = encodeURIComponent(
-          `📄 ${documentName || 'Document'}\n\n🔗 ${url}\n\n📱 Scan QR code to view on mobile`
-        );
-        shareUrl = `https://wa.me/?text=${message}`;
-      } else {
-        const message = encodeURIComponent(`📄 ${documentName || 'Document'}\n\n🔗 ${url}`);
-        shareUrl = `https://wa.me/?text=${message}`;
-      }
-    } 
+      shareText = `📄 ${documentName || 'Document'}\n\n🔗 ${url}\n\n📱 Scan the QR code to view on mobile`;
+      shareUrl = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
+    }
     // For Telegram
     else if (platform.name === 'Telegram') {
-      const message = encodeURIComponent(
-        `📄 ${documentName || 'Document'}\n\n🔗 ${url}\n\n📱 Scan QR code to view on mobile`
-      );
-      shareUrl = `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(`📄 ${documentName || 'Document'}`)}`;
+      shareUrl = `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(`📄 ${documentName || 'Document'}\n\n📱 Scan the QR code to view on mobile`)}`;
     }
-    // For Email - include QR code as attachment suggestion
+    // For Email - attach QR code as an image document
     else if (platform.name === 'Email') {
       const subject = encodeURIComponent(`📄 ${documentName || 'Document'} Shared with You`);
       const body = encodeURIComponent(
@@ -98,8 +137,8 @@ export default function ShareModal({ isOpen, onClose, url, documentName }) {
     }
     // For Twitter
     else if (platform.name === 'Twitter') {
-      const message = encodeURIComponent(`📄 ${documentName || 'Document'} - Check it out! ${url}`);
-      shareUrl = `https://twitter.com/intent/tweet?text=${message}`;
+      shareText = `📄 ${documentName || 'Document'} - Check it out! ${url}`;
+      shareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`;
     }
     // For Facebook
     else if (platform.name === 'Facebook') {
@@ -114,12 +153,26 @@ export default function ShareModal({ isOpen, onClose, url, documentName }) {
       await navigator.clipboard.writeText(url);
       return;
     }
-    
+
+    // Prefer sharing the QR code as an actual image document when supported
+    const shared = await shareWithQRFile(shareText);
+    if (shared) return;
+
     window.open(shareUrl, '_blank', 'width=600,height=400');
   };
 
-  const handleDownloadQR = () => {
-    if (!qrRef.current) return;
+  const handleDownloadQR = async () => {
+    if (!qrCode && !qrRef.current) return;
+
+    // If the file already provides a QR code data URL, download it directly
+    if (qrCode) {
+      const link = document.createElement('a');
+      link.download = 'qrcode.png';
+      link.href = qrCode;
+      link.click();
+      return;
+    }
+
     const svg = qrRef.current;
     const svgData = new XMLSerializer().serializeToString(svg);
     const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
@@ -145,41 +198,33 @@ export default function ShareModal({ isOpen, onClose, url, documentName }) {
   };
 
   const handleCopyQRImage = async () => {
-    if (!qrRef.current) return;
-    
+    if (!qrCode && !qrRef.current) return;
+
     try {
-      const svg = qrRef.current;
-      const svgData = new XMLSerializer().serializeToString(svg);
-      const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
-      const urlObj = URL.createObjectURL(svgBlob);
-      
-      const img = new Image();
-      img.onload = async () => {
-        const canvas = document.createElement('canvas');
-        const size = 400;
-        canvas.width = size;
-        canvas.height = size;
-        const ctx = canvas.getContext('2d');
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, size, size);
-        ctx.drawImage(img, 0, 0, size, size);
-        
-        canvas.toBlob(async (blob) => {
-          try {
-            await navigator.clipboard.write([
-              new ClipboardItem({
-                'image/png': blob
-              })
-            ]);
-            // Show success notification
-          } catch (err) {
-            console.error('Failed to copy QR image:', err);
-          }
-        }, 'image/png');
-        
-        URL.revokeObjectURL(urlObj);
-      };
-      img.src = urlObj;
+      const img = await loadQRImage();
+      if (!img) return;
+
+      const canvas = document.createElement('canvas');
+      const size = 400;
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, size, size);
+      ctx.drawImage(img, 0, 0, size, size);
+
+      canvas.toBlob(async (blob) => {
+        try {
+          await navigator.clipboard.write([
+            new ClipboardItem({
+              'image/png': blob
+            })
+          ]);
+          // Show success notification
+        } catch (err) {
+          console.error('Failed to copy QR image:', err);
+        }
+      }, 'image/png');
     } catch (error) {
       console.error('Error copying QR image:', error);
     }
@@ -221,7 +266,11 @@ export default function ShareModal({ isOpen, onClose, url, documentName }) {
 
       <div className="flex flex-col items-center gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
         {/* <div className="p-4 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700">
-          <QRCodeSVG ref={qrRef} value={url} size={180} className="mx-auto" />
+          {qrCode ? (
+            <img src={qrCode} alt="QR Code" className="w-44 h-44 mx-auto" />
+          ) : (
+            <QRCodeSVG ref={qrRef} value={url} size={180} className="mx-auto" />
+          )}
         </div> */}
         <p className="text-xs text-gray-500 dark:text-gray-400">Scan to view document</p>
         <div className="flex flex-wrap w-full gap-2">
@@ -232,6 +281,9 @@ export default function ShareModal({ isOpen, onClose, url, documentName }) {
           />
           <Button size="sm" variant="outline" onClick={() => navigator.clipboard.writeText(url)}>
             Copy Link
+          </Button>
+          <Button size="sm" variant="secondary" onClick={handleCopyQRImage}>
+            Copy QR
           </Button>
           <Button size="sm" variant="secondary" onClick={handleDownloadQR}>
             Download QR
