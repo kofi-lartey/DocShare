@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import * as XLSX from 'xlsx';
 import { 
   FiDownload, FiShare2, FiEye, FiCalendar, FiUser, 
   FiCode, FiCopy, FiFileText, FiImage, FiVideo, FiMusic,
@@ -830,6 +831,154 @@ const AudioPreview = ({ file, isPasswordProtected, onUnlock }) => {
   );
 };
 
+// ExcelPreview with password protection
+const ExcelPreview = ({ file, isPasswordProtected, onUnlock }) => {
+  const [html, setHtml] = useState('');
+  const [sheetNames, setSheetNames] = useState([]);
+  const [currentSheet, setCurrentSheet] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [password, setPassword] = useState('');
+  const [isUnlocking, setIsUnlocking] = useState(false);
+  const [unlockError, setUnlockError] = useState('');
+  const [isUnlocked, setIsUnlocked] = useState(false);
+
+  const parseExcel = (data) => {
+    const binaryString = atob(data);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+    const workbook = XLSX.read(bytes, { type: 'array' });
+    const names = workbook.SheetNames;
+    setSheetNames(names);
+    const sheet = workbook.Sheets[names[currentSheet]];
+    setHtml(XLSX.utils.sheet_to_html(sheet));
+  };
+
+  useEffect(() => {
+    if (isUnlocked || !isPasswordProtected) {
+      setLoading(true);
+      setError(null);
+      try {
+        const data = file?.fileData || file?.content;
+        if (!data) {
+          setError('No file data available');
+          setLoading(false);
+          return;
+        }
+        parseExcel(data);
+      } catch (err) {
+        console.error('Error parsing Excel:', err);
+        setError('Failed to parse Excel file');
+      } finally {
+        setLoading(false);
+      }
+    }
+  }, [file, isUnlocked, isPasswordProtected, currentSheet]);
+
+  const handleUnlock = async () => {
+    if (!password) {
+      setUnlockError('Please enter a password');
+      return;
+    }
+    setIsUnlocking(true);
+    setUnlockError('');
+    try {
+      const result = await verifyPassword(file.id, password);
+      if (result.success) {
+        setIsUnlocked(true);
+        if (onUnlock) onUnlock();
+        const unlockedSource = result.data?.filePath || result.data?.fileData;
+        if (unlockedSource) {
+          setLoading(true);
+          parseExcel(unlockedSource);
+          setLoading(false);
+        }
+      }
+    } catch (err) {
+      setUnlockError(err.message || 'Invalid password');
+    } finally {
+      setIsUnlocking(false);
+    }
+  };
+
+  if (isPasswordProtected && !isUnlocked) {
+    return (
+      <div className="bg-gray-100 dark:bg-gray-800 rounded-xl p-12 text-center">
+        <div className="w-20 h-20 bg-yellow-100 dark:bg-yellow-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+          <FiLock className="w-10 h-10 text-yellow-600" />
+        </div>
+        <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">Password Protected</h3>
+        <p className="text-gray-500 dark:text-gray-400 mb-4">This spreadsheet is password protected</p>
+        <div className="flex flex-col items-center gap-3 max-w-xs mx-auto">
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Enter password"
+            className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+            onKeyPress={(e) => e.key === 'Enter' && handleUnlock()}
+          />
+          {unlockError && (
+            <p className="text-sm text-red-600">{unlockError}</p>
+          )}
+          <Button onClick={handleUnlock} loading={isUnlocking} className="w-full">
+            <FiUnlock className="mr-2" /> Unlock
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="bg-gray-900 dark:bg-gray-950 rounded-xl p-8 min-h-[400px] flex items-center justify-center">
+        <ImageLoader size="md" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-6 text-center">
+        <FiAlertCircle className="w-8 h-8 text-red-600 mx-auto mb-2" />
+        <p className="text-red-600 dark:text-red-400">{error}</p>
+        <Button size="sm" className="mt-4" onClick={() => window.location.reload()}>
+          Retry
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="w-full">
+      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+        {sheetNames.length > 1 && (
+          <div className="flex items-center gap-2 p-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+            <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Sheet:</span>
+            <select
+              value={currentSheet}
+              onChange={(e) => setCurrentSheet(Number(e.target.value))}
+              className="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+            >
+              {sheetNames.map((name, idx) => (
+                <option key={name} value={idx}>{name}</option>
+              ))}
+            </select>
+            <span className="text-xs text-gray-500 ml-auto">
+              {sheetNames.length} sheet{sheetNames.length !== 1 ? 's' : ''}
+            </span>
+          </div>
+        )}
+        <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
+          <div dangerouslySetInnerHTML={{ __html: html }} />
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // DefaultPreview with password protection
 const DefaultPreview = ({ file, onDownload, onShare, isPasswordProtected, onUnlock }) => {
   const [password, setPassword] = useState('');
@@ -924,6 +1073,7 @@ const getFileIcon = (type) => {
 
 const getFilePreview = (file, onDownload, onShare, isPasswordProtected, onUnlock) => {
   const type = file?.type || '';
+  const name = file?.name || '';
   
   if (type.includes('pdf')) return <PDFPreview file={file} onDownload={onDownload} isPasswordProtected={isPasswordProtected} onUnlock={onUnlock} />;
   if (type.includes('image')) return <ImagePreview file={file} isPasswordProtected={isPasswordProtected} onUnlock={onUnlock} />;
@@ -933,6 +1083,10 @@ const getFilePreview = (file, onDownload, onShare, isPasswordProtected, onUnlock
   }
   if (type.includes('video')) return <VideoPreview file={file} onDownload={onDownload} isPasswordProtected={isPasswordProtected} onUnlock={onUnlock} />;
   if (type.includes('audio')) return <AudioPreview file={file} isPasswordProtected={isPasswordProtected} onUnlock={onUnlock} />;
+  if (type.includes('spreadsheet') || type.includes('excel') || type.includes('csv') ||
+      type.includes('sheet') || name.match(/\.(xlsx|xls|csv|ods)$/i)) {
+    return <ExcelPreview file={file} isPasswordProtected={isPasswordProtected} onUnlock={onUnlock} />;
+  }
   return <DefaultPreview file={file} onDownload={onDownload} onShare={onShare} isPasswordProtected={isPasswordProtected} onUnlock={onUnlock} />;
 };
 
