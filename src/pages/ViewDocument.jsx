@@ -863,6 +863,7 @@ export default function ViewDocument() {
   const [showShareModal, setShowShareModal] = useState(false);
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [isUnlocked, setIsUnlocked] = useState(false);
+  const [qrCodeUrl, setQrCodeUrl] = useState(null);
 
   useEffect(() => {
     const fetchFile = async () => {
@@ -870,6 +871,9 @@ export default function ViewDocument() {
       try {
         const result = await getFile(fileId);
         setFile(result.data);
+        if (result.data.qrCode) {
+          setQrCodeUrl(result.data.qrCode);
+        }
         if (!result.data.requirePassword) {
           setIsUnlocked(true);
         }
@@ -1195,9 +1199,9 @@ export default function ViewDocument() {
             <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Share via link</p>
             <div className="flex items-center gap-2 mt-2">
               <code className="flex-1 px-3 py-2 bg-white dark:bg-gray-900 rounded-lg text-sm border border-gray-200 dark:border-gray-700 truncate">
-                {file?.shareableLink}
+                {file?.shareableUrl || file?.shareableLink}
               </code>
-              <Button size="sm" variant="outline" onClick={() => handleCopy(file?.shareableLink)}>
+              <Button size="sm" variant="outline" onClick={() => handleCopy(file?.shareableUrl || file?.shareableLink)}>
                 <FiCopy className="w-4 h-4" />
               </Button>
             </div>
@@ -1206,15 +1210,19 @@ export default function ViewDocument() {
           <div className="text-center">
             <p className="text-sm text-gray-500 mb-3">Scan with your phone</p>
             <div className="inline-block bg-white dark:bg-gray-900 p-4 rounded-2xl border border-gray-200 dark:border-gray-700">
-              <QRCodeSVG value={file?.shareableLink} size={180} />
+              {qrCodeUrl ? (
+                <img src={qrCodeUrl} alt="QR Code" className="w-44 h-44" />
+              ) : (
+                <QRCodeSVG value={file?.shareableLink} size={180} />
+              )}
             </div>
           </div>
 
           <div className="flex gap-3">
-            <Button variant="outline" className="flex-1" onClick={() => handleCopy(file?.shareableLink)}>
+            <Button variant="outline" className="flex-1" onClick={() => handleCopy(file?.shareableUrl || file?.shareableLink)}>
               <FiCopy className="mr-2" /> Copy Link
             </Button>
-            <Button variant="primary" className="flex-1">
+            <Button variant="primary" className="flex-1" onClick={() => window.open(file?.shareableUrl || file?.shareableLink, '_blank')}>
               <FiExternalLink className="mr-2" /> Open Link
             </Button>
           </div>
@@ -1225,7 +1233,11 @@ export default function ViewDocument() {
       <Modal isOpen={showQR} onClose={() => setShowQR(false)} title="QR Code" size="sm">
         <div className="text-center">
           <div className="inline-block bg-white dark:bg-gray-900 p-6 rounded-2xl border border-gray-200 dark:border-gray-700">
-            <QRCodeSVG value={file?.shareableLink} size={200} />
+            {qrCodeUrl ? (
+              <img src={qrCodeUrl} alt="QR Code" className="w-48 h-48" />
+            ) : (
+              <QRCodeSVG value={file?.shareableLink ? `${window.location.origin}/view/${file.shareableLink}` : file?.shareableLink} size={180} />
+            )}
           </div>
           <p className="mt-4 text-sm text-gray-500">Scan to view this document</p>
           <Button 
