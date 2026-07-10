@@ -21,6 +21,7 @@ export function AuthProvider({ children }) {
           console.log('Token validation failed:', err.message);
           localStorage.removeItem('docshare_token');
           localStorage.removeItem('docshare_user');
+          setUser(null);
         }
       }
       setLoading(false);

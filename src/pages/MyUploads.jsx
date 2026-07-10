@@ -109,7 +109,7 @@ export default function MyUploads() {
     if (selectedFiles.length === fileList.length) {
       setSelectedFiles([]);
     } else {
-      setSelectedFiles(fileList.map(f => f.id));
+              setSelectedFiles(fileList.map(f => f._id));
     }
   };
 
@@ -316,11 +316,11 @@ export default function MyUploads() {
 
             {fileList.map((file) => (
               <motion.div
-                key={file.id}
+                key={file._id}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 className={`grid grid-cols-1 md:grid-cols-12 gap-4 p-4 rounded-xl transition-all duration-200 ${
-                  selectedFiles.includes(file.id) 
+                  selectedFiles.includes(file._id) 
                     ? 'bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-500' 
                     : 'hover:bg-gray-50 dark:hover:bg-gray-800/50 border-2 border-transparent'
                 }`}
@@ -329,7 +329,7 @@ export default function MyUploads() {
                   <input
                     type="checkbox"
                     checked={selectedFiles.includes(file.id)}
-                    onChange={() => toggleFileSelection(file.id)}
+                    onChange={() => toggleFileSelection(file._id)}
                     className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
                   />
                 </div>
@@ -349,7 +349,7 @@ export default function MyUploads() {
                 </div>
                 
                 <div className="col-span-2 flex items-center text-sm text-gray-600 dark:text-gray-400">
-                  {formatDate(file.uploadDate)}
+                  {formatDate(file.createdAt)}
                 </div>
                 
                 <div className="col-span-1 flex items-center text-sm text-gray-600 dark:text-gray-400">
@@ -394,12 +394,12 @@ export default function MyUploads() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {fileList.map((file) => (
             <motion.div
-              key={file.id}
+              key={file._id}
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               whileHover={{ y: -4 }}
               className={`relative group bg-white dark:bg-gray-800 rounded-2xl border-2 p-4 transition-all duration-200 ${
-                selectedFiles.includes(file.id) 
+                selectedFiles.includes(file._id) 
                   ? 'border-blue-500 shadow-lg shadow-blue-500/20' 
                   : 'border-gray-200 dark:border-gray-700 hover:shadow-lg'
               }`}
@@ -407,8 +407,8 @@ export default function MyUploads() {
               <div className="absolute top-3 left-3">
                 <input
                   type="checkbox"
-                  checked={selectedFiles.includes(file.id)}
-                  onChange={() => toggleFileSelection(file.id)}
+                  checked={selectedFiles.includes(file._id)}
+                  onChange={() => toggleFileSelection(file._id)}
                   className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
                 />
               </div>
@@ -550,7 +550,7 @@ export default function MyUploads() {
                  if (isBulkDelete) {
                    handleBulkDelete();
                  } else if (fileToDelete) {
-                   handleDelete(fileToDelete.id);
+                    handleDelete(fileToDelete._id);
                  }
                }}
              >

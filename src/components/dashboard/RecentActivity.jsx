@@ -30,14 +30,14 @@ export default function RecentActivity({ data }) {
           </thead>
           <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
             {data?.map((file) => (
-              <tr key={file.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+              <tr key={file._id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
                 <td className="py-3 px-4">
                   <div className="flex items-center gap-3">
                     {getFileIcon(file.type)}
                     <span className="text-sm font-medium text-gray-900 dark:text-white truncate max-w-[200px]">{file.name}</span>
                   </div>
                 </td>
-                <td className="py-3 px-4 text-sm text-gray-500 dark:text-gray-400">{formatDate(file.uploadDate)}</td>
+                <td className="py-3 px-4 text-sm text-gray-500 dark:text-gray-400">{formatDate(file.createdAt)}</td>
                 <td className="py-3 px-4 text-sm text-gray-500 dark:text-gray-400">{file.views}</td>
                 <td className="py-3 px-4"><Badge variant={file.status === 'active' ? 'success' : 'error'}>{file.status}</Badge></td>
                 <td className="py-3 px-4">
