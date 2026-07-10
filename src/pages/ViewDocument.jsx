@@ -23,7 +23,7 @@ import { cn } from '../utils/helpers';
 
 const PDFPreview = ({ file, onDownload, isPasswordProtected, onUnlock }) => {
   const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
+  const [totalPages, setTotalPages] = useState(file?.pages > 0 ? file.pages : 1);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [pdfUrl, setPdfUrl] = useState(null);
   const [showPdfViewer, setShowPdfViewer] = useState(false);
@@ -58,37 +58,43 @@ const PDFPreview = ({ file, onDownload, isPasswordProtected, onUnlock }) => {
     }
   }, [file]);
 
-  // Function to get actual PDF page count
+  // Function to get actual PDF page count.
+  // The backend now stores an accurate `pages` value at upload time, so we
+  // trust that when available. For older files that were stored before this
+  // fix (e.g. pages === 1), we fall back to reading the whole PDF and counting
+  // the page objects. We scan the ENTIRE file, not just the first 10 KB, since
+  // the /Count entry often appears near the end of the document.
   const getPDFPageCount = async (url) => {
+    // Prefer the value stored in the database when it looks valid.
+    if (file?.pages > 1) {
+      setTotalPages(file.pages);
+      return;
+    }
+
     try {
-      // Fetch the PDF and read its metadata
       const response = await fetch(url);
       const arrayBuffer = await response.arrayBuffer();
-      
-      // Simple way to get page count from PDF
-      // Look for /Type /Page or /Count in the PDF structure
-      const text = await new TextDecoder('latin1').decode(arrayBuffer.slice(0, 10000));
-      const pageCountMatch = text.match(/\/Count\s+(\d+)/);
-      if (pageCountMatch) {
-        setTotalPages(parseInt(pageCountMatch[1]));
+      const text = new TextDecoder('latin1').decode(arrayBuffer);
+
+      // Method 1: the /Count in the root Pages tree is the authoritative
+      // total. Take the largest /Count found (nested page trees have smaller
+      // counts than the root node).
+      const countMatches = [...text.matchAll(/\/Count\s+(\d+)/g)].map((m) => parseInt(m[1], 10));
+      const maxCount = countMatches.length ? Math.max(...countMatches) : 0;
+
+      // Method 2: count individual page objects as a cross-check.
+      const pageObjectCount = (text.match(/\/Type\s*\/Page(?![sV])/g) || []).length;
+
+      const detected = Math.max(maxCount, pageObjectCount);
+
+      if (detected > 0) {
+        setTotalPages(detected);
       } else {
-        // If we can't find the count, try counting page objects
-        const pageCount = (text.match(/\/Type\s*\/Page/g) || []).length;
-        if (pageCount > 0) {
-          setTotalPages(pageCount);
-        } else {
-          // Fallback: try to estimate from trailer
-          const trailerMatch = text.match(/\/Pages\s+(\d+)\s+0\s+R/);
-          if (trailerMatch) {
-            setTotalPages(parseInt(trailerMatch[1]));
-          } else {
-            setTotalPages(1); // Default to 1 if we can't determine
-          }
-        }
+        setTotalPages(file?.pages || 1);
       }
     } catch (e) {
       console.error('Error getting PDF page count:', e);
-      setTotalPages(1);
+      setTotalPages(file?.pages || 1);
     }
   };
 
