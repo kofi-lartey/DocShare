@@ -361,8 +361,15 @@ export default function MyUploads() {
                     {file.status}
                   </Badge>
                 </div>
-                
-                <div className="col-span-1 flex items-center justify-end gap-1">
+
+                <div className="col-span-1 flex items-center justify-end gap-1 pl-4">
+                  <button 
+                    onClick={() => navigate(`/view/${file._id}`)} 
+                    className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 hover:text-blue-600 transition-colors"
+                    title="View"
+                  >
+                    <FiEye className="w-4 h-4" />
+                  </button>
                   <button 
                     onClick={() => handleCopyLink(file.shareableUrl || file.shareableLink)} 
                     className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
@@ -377,7 +384,7 @@ export default function MyUploads() {
                   >
                     <FiCode className="w-4 h-4" />
                   </button>
-<button 
+                  <button 
                      onClick={() => setFileToDelete(file)} 
                      className="p-1.5 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/20 text-gray-500 hover:text-red-600 transition-colors"
                      title="Delete"
@@ -432,6 +439,13 @@ export default function MyUploads() {
               
               <div className="flex justify-center gap-2 mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
                 <button 
+                  onClick={() => navigate(`/view/${file._id}`)} 
+                  className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 hover:text-blue-600 transition-colors"
+                  title="View"
+                >
+                  <FiEye className="w-4 h-4" />
+                </button>
+                <button 
                   onClick={() => handleCopyLink(file.shareableUrl || file.shareableLink)} 
                   className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 hover:text-gray-700 transition-colors"
                   title="Copy link"
@@ -445,14 +459,14 @@ export default function MyUploads() {
                 >
                   <FiCode className="w-4 h-4" />
                 </button>
-<button 
+                <button 
                    onClick={() => setFileToDelete(file)} 
                    className="p-2 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/20 text-gray-500 hover:text-red-600 transition-colors"
                    title="Delete"
                  >
                    <FiTrash2 className="w-4 h-4" />
                  </button>
-               </div>
+              </div>
              </motion.div>
            ))}
          </div>

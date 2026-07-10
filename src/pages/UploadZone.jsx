@@ -529,7 +529,7 @@ export default function UploadZone() {
 
               <div className="mt-8 flex flex-wrap gap-3 justify-center">
                 <Button 
-                  onClick={() => navigate(`/view/${successData.id}`)}
+                  onClick={() => navigate(`/view/${successData.shareableLink}`)}
                   className="px-8 py-3 text-base"
                 >
                   <FiEye className="w-5 h-5 mr-2" />
