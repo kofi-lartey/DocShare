@@ -1,1066 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import * as XLSX from 'xlsx';
-import { 
-  FiDownload, FiShare2, FiEye, FiCalendar, FiUser, 
+import {
+  FiDownload, FiShare2, FiEye, FiCalendar, FiUser,
   FiCode, FiCopy, FiFileText, FiImage, FiVideo, FiMusic,
-  FiLock, FiClock, FiArrowLeft, FiMaximize2,
+  FiLock, FiArrowLeft, FiMaximize2,
   FiInfo, FiAlertCircle, FiCheckCircle,
   FiFile, FiPrinter, FiBookmark, FiStar,
   FiExternalLink, FiLink, FiEyeOff, FiUnlock,
-  FiX, FiShield
+  FiX, FiShield,
 } from 'react-icons/fi';
-import { getFile, verifyPassword, trackDownload } from '../services/api';
-import { formatFileSize, formatDate } from '../utils/helpers';
+import { getFile, trackDownload } from '../services/api';
+import { formatFileSize, formatDate, cn } from '../utils/helpers';
 import { useNotification } from '../contexts/NotificationContext';
 import Button from '../components/common/Button';
 import { Badge } from '../components/common/Badge';
-import { Card, CardHeader, CardContent } from '../components/common/Card';
+import { Card } from '../components/common/Card';
 import { Modal } from '../components/common/Modal';
 import ImageLoader from '../components/common/ImageLoader';
 import BrandLogo from '../components/common/BrandLogo';
 import { QRCodeSVG } from 'qrcode.react';
-import { cn } from '../utils/helpers';
+import { base64ToBlob, triggerDownload } from '../utils/blob';
+import { getPreviewComponent } from '../components/document/previewRegistry';
 
-// ==================== File Preview Components ====================
-
-const PDFPreview = ({ file, onDownload, isPasswordProtected, onUnlock }) => {
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(file?.pages > 0 ? file.pages : 1);
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  const [pdfUrl, setPdfUrl] = useState(null);
-  const [showPdfViewer, setShowPdfViewer] = useState(false);
-  const [password, setPassword] = useState('');
-  const [isUnlocking, setIsUnlocking] = useState(false);
-  const [unlockError, setUnlockError] = useState('');
-  const [isUnlocked, setIsUnlocked] = useState(false);
-
-  useEffect(() => {
-    // Try to create PDF URL from file data
-    if (file?.fileData || file?.content) {
-      try {
-        const data = file.fileData || file.content;
-        const binaryString = atob(data);
-        const bytes = new Uint8Array(binaryString.length);
-        for (let i = 0; i < binaryString.length; i++) {
-          bytes[i] = binaryString.charCodeAt(i);
-        }
-        const blob = new Blob([bytes], { type: 'application/pdf' });
-        const url = URL.createObjectURL(blob);
-        setPdfUrl(url);
-        
-        // Get actual page count from the PDF
-        getPDFPageCount(url);
-      } catch (e) {
-        console.error('Error creating PDF URL:', e);
-      }
-    } else if (file?.url) {
-      setPdfUrl(file.url);
-      // Get actual page count from the PDF
-      getPDFPageCount(file.url);
-    }
-  }, [file]);
-
-  // Function to get actual PDF page count.
-  // The backend now stores an accurate `pages` value at upload time, so we
-  // trust that when available. For older files that were stored before this
-  // fix (e.g. pages === 1), we fall back to reading the whole PDF and counting
-  // the page objects. We scan the ENTIRE file, not just the first 10 KB, since
-  // the /Count entry often appears near the end of the document.
-  const getPDFPageCount = async (url) => {
-    // Prefer the value stored in the database when it looks valid.
-    if (file?.pages > 1) {
-      setTotalPages(file.pages);
-      return;
-    }
-
-    try {
-      const response = await fetch(url);
-      const arrayBuffer = await response.arrayBuffer();
-      const text = new TextDecoder('latin1').decode(arrayBuffer);
-
-      // Method 1: the /Count in the root Pages tree is the authoritative
-      // total. Take the largest /Count found (nested page trees have smaller
-      // counts than the root node).
-      const countMatches = [...text.matchAll(/\/Count\s+(\d+)/g)].map((m) => parseInt(m[1], 10));
-      const maxCount = countMatches.length ? Math.max(...countMatches) : 0;
-
-      // Method 2: count individual page objects as a cross-check.
-      const pageObjectCount = (text.match(/\/Type\s*\/Page(?![sV])/g) || []).length;
-
-      const detected = Math.max(maxCount, pageObjectCount);
-
-      if (detected > 0) {
-        setTotalPages(detected);
-      } else {
-        setTotalPages(file?.pages || 1);
-      }
-    } catch (e) {
-      console.error('Error getting PDF page count:', e);
-      setTotalPages(file?.pages || 1);
-    }
-  };
-
-  const handleUnlock = async () => {
-    if (!password) {
-      setUnlockError('Please enter a password');
-      return;
-    }
-    setIsUnlocking(true);
-    setUnlockError('');
-    try {
-      const result = await verifyPassword(file.id, password);
-      if (result.success) {
-        setIsUnlocked(true);
-        if (onUnlock) onUnlock();
-        // Reload the file with the unlocked data
-        const unlockedSource = result.data?.filePath || result.data?.fileData;
-        if (unlockedSource) {
-          const setUnlockedUrl = (url) => {
-            setPdfUrl(url);
-            setShowPdfViewer(true);
-          };
-          try {
-            const binaryString = atob(unlockedSource);
-            const bytes = new Uint8Array(binaryString.length);
-            for (let i = 0; i < binaryString.length; i++) {
-              bytes[i] = binaryString.charCodeAt(i);
-            }
-            const blob = new Blob([bytes], { type: 'application/pdf' });
-            setUnlockedUrl(URL.createObjectURL(blob));
-          } catch {
-            setUnlockedUrl(unlockedSource);
-          }
-        }
-      }
-    } catch (err) {
-      setUnlockError(err.message || 'Invalid password');
-    } finally {
-      setIsUnlocking(false);
-    }
-  };
-
-  const handleKeyDown = (e) => {
-    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
-      e.preventDefault();
-      setPage((p) => Math.min(totalPages, p + 1));
-    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
-      e.preventDefault();
-      setPage((p) => Math.max(1, p - 1));
-    }
-  };
-
-  // If password protected and not unlocked, show lock screen
-  if (isPasswordProtected && !isUnlocked) {
-    return (
-      <div className="bg-gray-100 dark:bg-gray-800 rounded-xl p-12 text-center">
-        <div className="w-20 h-20 bg-yellow-100 dark:bg-yellow-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
-          <FiLock className="w-10 h-10 text-yellow-600" />
-        </div>
-        <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">Password Protected</h3>
-        <p className="text-gray-500 dark:text-gray-400 mb-4">This document is password protected</p>
-        <div className="flex flex-col items-center gap-3 max-w-xs mx-auto">
-          <div className="w-full">
-            <input 
-              type="password" 
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter password"
-              className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-              onKeyPress={(e) => e.key === 'Enter' && handleUnlock()}
-            />
-            {unlockError && (
-              <p className="mt-2 text-sm text-red-600 flex items-center gap-1">
-                <FiAlertCircle className="w-4 h-4" />
-                {unlockError}
-              </p>
-            )}
-          </div>
-          <Button 
-            size="sm" 
-            onClick={handleUnlock} 
-            loading={isUnlocking}
-            className="w-full"
-          >
-            <FiUnlock className="mr-2" /> Unlock Document
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <>
-      <div className="w-full" tabIndex={0} onKeyDown={handleKeyDown}>
-        <div className="bg-gray-100 dark:bg-gray-800 rounded-xl p-4 flex flex-col items-center justify-center min-h-[500px]">
-        {pdfUrl && showPdfViewer ? (
-          <iframe
-            key={page}
-            id="pdf-viewer"
-            src={`${pdfUrl}#page=${page}&toolbar=1&navpanes=1&scrollbar=1&view=FitH`}
-            className="w-full h-[500px] rounded-lg border-0"
-            title="PDF Viewer"
-            allowFullScreen
-          />
-          ) : (
-            <div className="text-center">
-              <div className="w-24 h-24 bg-red-100 dark:bg-red-900/30 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <FiFileText className="text-red-600" size={48} />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">PDF Document</h3>
-              <p className="text-gray-500 dark:text-gray-400 mb-4">{file?.name}</p>
-              <div className="flex items-center gap-4 text-sm text-gray-500">
-                <span>{formatFileSize(file?.size)}</span>
-                <span>•</span>
-                <span>{totalPages} pages</span>
-              </div>
-              <div className="mt-6 flex gap-3 justify-center">
-                <Button 
-                  size="sm" 
-                  variant="primary" 
-                  onClick={() => setShowPdfViewer(true)}
-                  disabled={!pdfUrl}
-                >
-                  <FiEye className="mr-2" /> Preview PDF
-                </Button>
-                <Button size="sm" variant="outline" onClick={onDownload}>
-                  <FiDownload className="mr-2" /> Download
-                </Button>
-              </div>
-              {!pdfUrl && (
-                <p className="mt-4 text-xs text-yellow-600 dark:text-yellow-400">
-                  <FiInfo className="inline w-3 h-3 mr-1" />
-                  Preview not available - file data not found
-                </p>
-              )}
-            </div>
-          )}
-        </div>
-        
-        {pdfUrl && showPdfViewer && (
-          <div className="flex items-center justify-between mt-4 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl">
-            <div className="flex items-center gap-2">
-              <button 
-                className="p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50 transition-colors" 
-                disabled={page <= 1}
-                onClick={() => setPage(p => Math.max(1, p - 1))}
-              >
-                <FiArrowLeft className="w-4 h-4" />
-              </button>
-              <span className="text-sm text-gray-600 dark:text-gray-400 px-2">
-                Page {page} of {totalPages}
-              </span>
-              <button 
-                className="p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50 transition-colors" 
-                disabled={page >= totalPages}
-                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-              >
-                <FiArrowLeft className="w-4 h-4 rotate-180" />
-              </button>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-gray-400 dark:text-gray-500 mr-2 hidden sm:inline">
-                Use arrow keys to navigate
-              </span>
-              <button 
-                className="p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-                onClick={() => setIsFullscreen(true)}
-              >
-                <FiMaximize2 className="w-4 h-4" />
-              </button>
-              <button 
-                className="p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-                onClick={() => window.print()}
-              >
-                <FiPrinter className="w-4 h-4" />
-              </button>
-              <button 
-                className="p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-                onClick={() => setShowPdfViewer(false)}
-              >
-                <FiX className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-
-      <Modal isOpen={isFullscreen} onClose={() => setIsFullscreen(false)} title={file?.name} size="lg">
-      {pdfUrl && showPdfViewer ? (
-            <iframe
-              key={page}
-              src={`${pdfUrl}#page=${page}&toolbar=1&navpanes=1&scrollbar=1&view=FitH`}
-              className="w-full h-[80vh] rounded-lg border-0"
-              title="PDF Fullscreen"
-              allowFullScreen
-            />
-        ) : (
-          <div className="bg-gray-100 dark:bg-gray-800 rounded-xl p-8 flex flex-col items-center justify-center min-h-[500px]">
-            <FiFileText className="text-red-600" size={80} />
-            <p className="mt-4 text-gray-500">PDF Preview - Page {page} of {totalPages}</p>
-            <Button size="sm" className="mt-4" onClick={onDownload}>
-              <FiDownload className="mr-2" /> Download
-            </Button>
-          </div>
-        )}
-      </Modal>
-    </>
-  );
-};
-
-// ImagePreview with password protection
-const ImagePreview = ({ file, isPasswordProtected, onUnlock }) => {
-  const [preview, setPreview] = useState(null);
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  const [password, setPassword] = useState('');
-  const [isUnlocking, setIsUnlocking] = useState(false);
-  const [unlockError, setUnlockError] = useState('');
-  const [isUnlocked, setIsUnlocked] = useState(false);
-
-  useEffect(() => {
-    if (file?.url) {
-      setPreview(file.url);
-    } else if (file?.content) {
-      setPreview(`data:${file.type};base64,${file.content}`);
-    } else if (file?.fileData) {
-      setPreview(`data:${file.type};base64,${file.fileData}`);
-    }
-  }, [file]);
-
-  const handleUnlock = async () => {
-    if (!password) {
-      setUnlockError('Please enter a password');
-      return;
-    }
-    setIsUnlocking(true);
-    setUnlockError('');
-    try {
-      const result = await verifyPassword(file.id, password);
-      if (result.success) {
-        setIsUnlocked(true);
-        if (onUnlock) onUnlock();
-        const unlockedSource = result.data?.filePath || result.data?.fileData;
-        if (unlockedSource) {
-          try {
-            const decoded = atob(unlockedSource);
-            setPreview(`data:${file.type};base64,${unlockedSource}`);
-          } catch {
-            setPreview(unlockedSource);
-          }
-        }
-      }
-    } catch (err) {
-      setUnlockError(err.message || 'Invalid password');
-    } finally {
-      setIsUnlocking(false);
-    }
-  };
-
-  if (isPasswordProtected && !isUnlocked) {
-    return (
-      <div className="bg-gray-100 dark:bg-gray-800 rounded-xl p-12 text-center">
-        <div className="w-20 h-20 bg-yellow-100 dark:bg-yellow-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
-          <FiLock className="w-10 h-10 text-yellow-600" />
-        </div>
-        <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">Password Protected</h3>
-        <p className="text-gray-500 dark:text-gray-400 mb-4">This image is password protected</p>
-        <div className="flex flex-col items-center gap-3 max-w-xs mx-auto">
-          <input 
-            type="password" 
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Enter password"
-            className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-            onKeyPress={(e) => e.key === 'Enter' && handleUnlock()}
-          />
-          {unlockError && (
-            <p className="text-sm text-red-600">{unlockError}</p>
-          )}
-          <Button onClick={handleUnlock} loading={isUnlocking} className="w-full">
-            <FiUnlock className="mr-2" /> Unlock
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <>
-      <div className="w-full">
-        <div className="bg-gray-100 dark:bg-gray-800 rounded-xl p-4 flex flex-col items-center justify-center min-h-[400px]">
-          {preview ? (
-            <img 
-              src={preview} 
-              alt={file?.name} 
-              className="max-h-[500px] w-auto object-contain rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
-              onClick={() => setIsFullscreen(true)}
-            />
-          ) : (
-            <div className="text-center">
-              <div className="w-24 h-24 bg-blue-100 dark:bg-blue-900/30 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <FiImage className="text-blue-600" size={48} />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">Image Preview</h3>
-              <p className="text-gray-500 dark:text-gray-400">{file?.name}</p>
-              <p className="text-sm text-gray-400 mt-2">{formatFileSize(file?.size)}</p>
-            </div>
-          )}
-        </div>
-        {preview && (
-          <div className="mt-4 flex justify-end gap-2">
-            <button 
-              onClick={() => setIsFullscreen(true)}
-              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-            >
-              <FiMaximize2 className="w-5 h-5 text-gray-500" />
-            </button>
-          </div>
-        )}
-      </div>
-
-      <Modal isOpen={isFullscreen} onClose={() => setIsFullscreen(false)} title={file?.name} size="lg">
-        <div className="flex justify-center items-center min-h-[400px]">
-          <img src={preview} alt={file?.name} className="max-h-[80vh] max-w-full object-contain" />
-        </div>
-      </Modal>
-    </>
-  );
-};
-
-// TextPreview with password protection
-const TextPreview = ({ file, isPasswordProtected, onUnlock }) => {
-  const [content, setContent] = useState('');
-  const [showFull, setShowFull] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [password, setPassword] = useState('');
-  const [isUnlocking, setIsUnlocking] = useState(false);
-  const [unlockError, setUnlockError] = useState('');
-  const [isUnlocked, setIsUnlocked] = useState(false);
-
-  useEffect(() => {
-    if (isUnlocked || !isPasswordProtected) {
-      loadContent();
-    }
-  }, [file, isUnlocked, isPasswordProtected]);
-
-  const loadContent = async () => {
-    setLoading(true);
-    try {
-      if (file?.content) {
-        try {
-          const decoded = atob(file.content);
-          setContent(decoded);
-        } catch {
-          setContent(file.content);
-        }
-      } else if (file?.fileData) {
-        try {
-          const decoded = atob(file.fileData);
-          setContent(decoded);
-        } catch {
-          setContent(file.fileData);
-        }
-      } else if (file?.url) {
-        const response = await fetch(file.url);
-        const text = await response.text();
-        setContent(text);
-      }
-    } catch (error) {
-      setContent('Unable to load content');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleUnlock = async () => {
-    if (!password) {
-      setUnlockError('Please enter a password');
-      return;
-    }
-    setIsUnlocking(true);
-    setUnlockError('');
-    try {
-      const result = await verifyPassword(file.id, password);
-      if (result.success) {
-        setIsUnlocked(true);
-        if (onUnlock) onUnlock();
-        const unlockedSource = result.data?.filePath || result.data?.fileData;
-        if (unlockedSource) {
-          try {
-            const decoded = atob(unlockedSource);
-            setContent(decoded);
-          } catch {
-            setContent(unlockedSource);
-          }
-        }
-      }
-    } catch (err) {
-      setUnlockError(err.message || 'Invalid password');
-    } finally {
-      setIsUnlocking(false);
-    }
-  };
-
-  if (isPasswordProtected && !isUnlocked) {
-    return (
-      <div className="bg-gray-100 dark:bg-gray-800 rounded-xl p-12 text-center">
-        <div className="w-20 h-20 bg-yellow-100 dark:bg-yellow-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
-          <FiLock className="w-10 h-10 text-yellow-600" />
-        </div>
-        <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">Password Protected</h3>
-        <p className="text-gray-500 dark:text-gray-400 mb-4">This document is password protected</p>
-        <div className="flex flex-col items-center gap-3 max-w-xs mx-auto">
-          <input 
-            type="password" 
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Enter password"
-            className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-            onKeyPress={(e) => e.key === 'Enter' && handleUnlock()}
-          />
-          {unlockError && (
-            <p className="text-sm text-red-600">{unlockError}</p>
-          )}
-          <Button onClick={handleUnlock} loading={isUnlocking} className="w-full">
-            <FiUnlock className="mr-2" /> Unlock
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  if (loading) {
-    return (
-      <div className="bg-gray-900 dark:bg-gray-950 rounded-xl p-8 min-h-[400px] flex items-center justify-center">
-        <ImageLoader size="md" />
-      </div>
-    );
-  }
-
-  const displayContent = showFull ? content : content.slice(0, 1000);
-  const hasMore = content.length > 1000;
-
-  return (
-    <div className="w-full">
-      <div className="bg-gray-900 dark:bg-gray-950 rounded-xl p-6 min-h-[400px] max-h-[600px] overflow-y-auto">
-        <pre className="text-sm text-gray-300 font-mono whitespace-pre-wrap leading-relaxed">
-          {displayContent || 'No content to display'}
-        </pre>
-      </div>
-      {hasMore && (
-        <button
-          onClick={() => setShowFull(!showFull)}
-          className="mt-3 text-sm text-blue-600 hover:text-blue-700 font-medium"
-        >
-          {showFull ? 'Show less' : `Show more (${content.length - 1000} more characters)`}
-        </button>
-      )}
-    </div>
-  );
-};
-
-// VideoPreview with password protection
-const VideoPreview = ({ file, onDownload, isPasswordProtected, onUnlock }) => {
-  const [videoUrl, setVideoUrl] = useState(null);
-  const [password, setPassword] = useState('');
-  const [isUnlocking, setIsUnlocking] = useState(false);
-  const [unlockError, setUnlockError] = useState('');
-  const [isUnlocked, setIsUnlocked] = useState(false);
-
-  useEffect(() => {
-    if (isUnlocked || !isPasswordProtected) {
-      createVideoUrl();
-    }
-  }, [file, isUnlocked, isPasswordProtected]);
-
-  const createVideoUrl = () => {
-    if (file?.url) {
-      setVideoUrl(file.url);
-    } else if (file?.content) {
-      try {
-        const binaryString = atob(file.content);
-        const bytes = new Uint8Array(binaryString.length);
-        for (let i = 0; i < binaryString.length; i++) {
-          bytes[i] = binaryString.charCodeAt(i);
-        }
-        const blob = new Blob([bytes], { type: file.type });
-        const url = URL.createObjectURL(blob);
-        setVideoUrl(url);
-      } catch (e) {
-        console.error('Error creating video URL:', e);
-      }
-    } else if (file?.fileData) {
-      try {
-        const binaryString = atob(file.fileData);
-        const bytes = new Uint8Array(binaryString.length);
-        for (let i = 0; i < binaryString.length; i++) {
-          bytes[i] = binaryString.charCodeAt(i);
-        }
-        const blob = new Blob([bytes], { type: file.type });
-        const url = URL.createObjectURL(blob);
-        setVideoUrl(url);
-      } catch (e) {
-        console.error('Error creating video URL from fileData:', e);
-      }
-    }
-  };
-
-  const handleUnlock = async () => {
-    if (!password) {
-      setUnlockError('Please enter a password');
-      return;
-    }
-    setIsUnlocking(true);
-    setUnlockError('');
-    try {
-      const result = await verifyPassword(file.id, password);
-      if (result.success) {
-        setIsUnlocked(true);
-        if (onUnlock) onUnlock();
-        const videoSource = result.data?.filePath || result.data?.fileData;
-        if (videoSource) {
-          try {
-            const binaryString = atob(videoSource);
-            const bytes = new Uint8Array(binaryString.length);
-            for (let i = 0; i < binaryString.length; i++) {
-              bytes[i] = binaryString.charCodeAt(i);
-            }
-            const blob = new Blob([bytes], { type: file.type });
-            setVideoUrl(URL.createObjectURL(blob));
-          } catch {
-            setVideoUrl(videoSource);
-          }
-        }
-      }
-    } catch (err) {
-      setUnlockError(err.message || 'Invalid password');
-    } finally {
-      setIsUnlocking(false);
-    }
-  };
-
-  if (isPasswordProtected && !isUnlocked) {
-    return (
-      <div className="bg-gray-100 dark:bg-gray-800 rounded-xl p-12 text-center">
-        <div className="w-20 h-20 bg-yellow-100 dark:bg-yellow-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
-          <FiLock className="w-10 h-10 text-yellow-600" />
-        </div>
-        <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">Password Protected</h3>
-        <p className="text-gray-500 dark:text-gray-400 mb-4">This video is password protected</p>
-        <div className="flex flex-col items-center gap-3 max-w-xs mx-auto">
-          <input 
-            type="password" 
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Enter password"
-            className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-            onKeyPress={(e) => e.key === 'Enter' && handleUnlock()}
-          />
-          {unlockError && (
-            <p className="text-sm text-red-600">{unlockError}</p>
-          )}
-          <Button onClick={handleUnlock} loading={isUnlocking} className="w-full">
-            <FiUnlock className="mr-2" /> Unlock
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="w-full">
-      <div className="bg-gray-100 dark:bg-gray-800 rounded-xl p-4 flex flex-col items-center justify-center min-h-[400px]">
-        {videoUrl ? (
-          <video controls className="w-full max-h-[500px] rounded-lg">
-            <source src={videoUrl} type={file?.type} />
-            Your browser does not support the video tag.
-          </video>
-        ) : (
-          <div className="text-center">
-            <div className="w-24 h-24 bg-purple-100 dark:bg-purple-900/30 rounded-2xl flex items-center justify-center mb-4">
-              <FiVideo className="text-purple-600" size={48} />
-            </div>
-            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">Video File</h3>
-            <p className="text-gray-500 dark:text-gray-400 mb-4">{file?.name}</p>
-            <div className="flex items-center gap-4 text-sm text-gray-500">
-              <span>{formatFileSize(file?.size)}</span>
-              <span>•</span>
-              <span>{file?.duration || 'Unknown duration'}</span>
-            </div>
-            <Button size="sm" className="mt-4" onClick={onDownload}>
-              <FiDownload className="mr-2" /> Download Video
-            </Button>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-};
-
-// AudioPreview with password protection
-const AudioPreview = ({ file, isPasswordProtected, onUnlock }) => {
-  const [audioUrl, setAudioUrl] = useState(null);
-  const [password, setPassword] = useState('');
-  const [isUnlocking, setIsUnlocking] = useState(false);
-  const [unlockError, setUnlockError] = useState('');
-  const [isUnlocked, setIsUnlocked] = useState(false);
-
-  useEffect(() => {
-    if (isUnlocked || !isPasswordProtected) {
-      createAudioUrl();
-    }
-  }, [file, isUnlocked, isPasswordProtected]);
-
-  const createAudioUrl = () => {
-    if (file?.url) {
-      setAudioUrl(file.url);
-    } else if (file?.content) {
-      try {
-        const binaryString = atob(file.content);
-        const bytes = new Uint8Array(binaryString.length);
-        for (let i = 0; i < binaryString.length; i++) {
-          bytes[i] = binaryString.charCodeAt(i);
-        }
-        const blob = new Blob([bytes], { type: file.type });
-        const url = URL.createObjectURL(blob);
-        setAudioUrl(url);
-      } catch (e) {
-        console.error('Error creating audio URL:', e);
-      }
-    } else if (file?.fileData) {
-      try {
-        const binaryString = atob(file.fileData);
-        const bytes = new Uint8Array(binaryString.length);
-        for (let i = 0; i < binaryString.length; i++) {
-          bytes[i] = binaryString.charCodeAt(i);
-        }
-        const blob = new Blob([bytes], { type: file.type });
-        const url = URL.createObjectURL(blob);
-        setAudioUrl(url);
-      } catch (e) {
-        console.error('Error creating audio URL from fileData:', e);
-      }
-    }
-  };
-
-  const handleUnlock = async () => {
-    if (!password) {
-      setUnlockError('Please enter a password');
-      return;
-    }
-    setIsUnlocking(true);
-    setUnlockError('');
-    try {
-      const result = await verifyPassword(file.id, password);
-      if (result.success) {
-        setIsUnlocked(true);
-        if (onUnlock) onUnlock();
-        const audioSource = result.data?.filePath || result.data?.fileData;
-        if (audioSource) {
-          try {
-            const binaryString = atob(audioSource);
-            const bytes = new Uint8Array(binaryString.length);
-            for (let i = 0; i < binaryString.length; i++) {
-              bytes[i] = binaryString.charCodeAt(i);
-            }
-            const blob = new Blob([bytes], { type: file.type });
-            setAudioUrl(URL.createObjectURL(blob));
-          } catch {
-            setAudioUrl(audioSource);
-          }
-        }
-      }
-    } catch (err) {
-      setUnlockError(err.message || 'Invalid password');
-    } finally {
-      setIsUnlocking(false);
-    }
-  };
-
-  if (isPasswordProtected && !isUnlocked) {
-    return (
-      <div className="bg-gray-100 dark:bg-gray-800 rounded-xl p-12 text-center">
-        <div className="w-20 h-20 bg-yellow-100 dark:bg-yellow-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
-          <FiLock className="w-10 h-10 text-yellow-600" />
-        </div>
-        <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">Password Protected</h3>
-        <p className="text-gray-500 dark:text-gray-400 mb-4">This audio is password protected</p>
-        <div className="flex flex-col items-center gap-3 max-w-xs mx-auto">
-          <input 
-            type="password" 
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Enter password"
-            className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-            onKeyPress={(e) => e.key === 'Enter' && handleUnlock()}
-          />
-          {unlockError && (
-            <p className="text-sm text-red-600">{unlockError}</p>
-          )}
-          <Button onClick={handleUnlock} loading={isUnlocking} className="w-full">
-            <FiUnlock className="mr-2" /> Unlock
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="w-full">
-      <div className="bg-gray-100 dark:bg-gray-800 rounded-xl p-8 flex flex-col items-center justify-center min-h-[400px]">
-        <div className="w-24 h-24 bg-green-100 dark:bg-green-900/30 rounded-2xl flex items-center justify-center mb-4">
-          <FiMusic className="text-green-600" size={48} />
-        </div>
-        <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">Audio File</h3>
-        <p className="text-gray-500 dark:text-gray-400 mb-4">{file?.name}</p>
-        <div className="flex items-center gap-4 text-sm text-gray-500">
-          <span>{formatFileSize(file?.size)}</span>
-          <span>•</span>
-          <span>{file?.duration || 'Unknown duration'}</span>
-        </div>
-        {audioUrl && (
-          <div className="w-full max-w-md mt-4">
-            <audio controls className="w-full rounded-lg">
-              <source src={audioUrl} type={file?.type} />
-              Your browser does not support the audio element.
-            </audio>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-};
-
-// ExcelPreview with password protection
-const ExcelPreview = ({ file, isPasswordProtected, onUnlock }) => {
-  const [html, setHtml] = useState('');
-  const [sheetNames, setSheetNames] = useState([]);
-  const [currentSheet, setCurrentSheet] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [password, setPassword] = useState('');
-  const [isUnlocking, setIsUnlocking] = useState(false);
-  const [unlockError, setUnlockError] = useState('');
-  const [isUnlocked, setIsUnlocked] = useState(false);
-
-  const parseExcel = (data) => {
-    const binaryString = atob(data);
-    const bytes = new Uint8Array(binaryString.length);
-    for (let i = 0; i < binaryString.length; i++) {
-      bytes[i] = binaryString.charCodeAt(i);
-    }
-    const workbook = XLSX.read(bytes, { type: 'array' });
-    const names = workbook.SheetNames;
-    setSheetNames(names);
-    const sheet = workbook.Sheets[names[currentSheet]];
-    setHtml(XLSX.utils.sheet_to_html(sheet));
-  };
-
-  useEffect(() => {
-    if (isUnlocked || !isPasswordProtected) {
-      setLoading(true);
-      setError(null);
-      try {
-        const data = file?.fileData || file?.content;
-        if (!data) {
-          setError('No file data available');
-          setLoading(false);
-          return;
-        }
-        parseExcel(data);
-      } catch (err) {
-        console.error('Error parsing Excel:', err);
-        setError('Failed to parse Excel file');
-      } finally {
-        setLoading(false);
-      }
-    }
-  }, [file, isUnlocked, isPasswordProtected, currentSheet]);
-
-  const handleUnlock = async () => {
-    if (!password) {
-      setUnlockError('Please enter a password');
-      return;
-    }
-    setIsUnlocking(true);
-    setUnlockError('');
-    try {
-      const result = await verifyPassword(file.id, password);
-      if (result.success) {
-        setIsUnlocked(true);
-        if (onUnlock) onUnlock();
-        const unlockedSource = result.data?.filePath || result.data?.fileData;
-        if (unlockedSource) {
-          setLoading(true);
-          parseExcel(unlockedSource);
-          setLoading(false);
-        }
-      }
-    } catch (err) {
-      setUnlockError(err.message || 'Invalid password');
-    } finally {
-      setIsUnlocking(false);
-    }
-  };
-
-  if (isPasswordProtected && !isUnlocked) {
-    return (
-      <div className="bg-gray-100 dark:bg-gray-800 rounded-xl p-12 text-center">
-        <div className="w-20 h-20 bg-yellow-100 dark:bg-yellow-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
-          <FiLock className="w-10 h-10 text-yellow-600" />
-        </div>
-        <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">Password Protected</h3>
-        <p className="text-gray-500 dark:text-gray-400 mb-4">This spreadsheet is password protected</p>
-        <div className="flex flex-col items-center gap-3 max-w-xs mx-auto">
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Enter password"
-            className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-            onKeyPress={(e) => e.key === 'Enter' && handleUnlock()}
-          />
-          {unlockError && (
-            <p className="text-sm text-red-600">{unlockError}</p>
-          )}
-          <Button onClick={handleUnlock} loading={isUnlocking} className="w-full">
-            <FiUnlock className="mr-2" /> Unlock
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  if (loading) {
-    return (
-      <div className="bg-gray-900 dark:bg-gray-950 rounded-xl p-8 min-h-[400px] flex items-center justify-center">
-        <ImageLoader size="md" />
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-6 text-center">
-        <FiAlertCircle className="w-8 h-8 text-red-600 mx-auto mb-2" />
-        <p className="text-red-600 dark:text-red-400">{error}</p>
-        <Button size="sm" className="mt-4" onClick={() => window.location.reload()}>
-          Retry
-        </Button>
-      </div>
-    );
-  }
-
-  return (
-    <div className="w-full">
-      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-        {sheetNames.length > 1 && (
-          <div className="flex items-center gap-2 p-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
-            <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Sheet:</span>
-            <select
-              value={currentSheet}
-              onChange={(e) => setCurrentSheet(Number(e.target.value))}
-              className="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-            >
-              {sheetNames.map((name, idx) => (
-                <option key={name} value={idx}>{name}</option>
-              ))}
-            </select>
-            <span className="text-xs text-gray-500 ml-auto">
-              {sheetNames.length} sheet{sheetNames.length !== 1 ? 's' : ''}
-            </span>
-          </div>
-        )}
-        <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
-          <div dangerouslySetInnerHTML={{ __html: html }} />
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// DefaultPreview with password protection
-const DefaultPreview = ({ file, onDownload, onShare, isPasswordProtected, onUnlock }) => {
-  const [password, setPassword] = useState('');
-  const [isUnlocking, setIsUnlocking] = useState(false);
-  const [unlockError, setUnlockError] = useState('');
-  const [isUnlocked, setIsUnlocked] = useState(false);
-
-  const handleUnlock = async () => {
-    if (!password) {
-      setUnlockError('Please enter a password');
-      return;
-    }
-    setIsUnlocking(true);
-    setUnlockError('');
-    try {
-      const result = await verifyPassword(file.id, password);
-      if (result.success) {
-        setIsUnlocked(true);
-        if (onUnlock) onUnlock();
-      }
-    } catch (err) {
-      setUnlockError(err.message || 'Invalid password');
-    } finally {
-      setIsUnlocking(false);
-    }
-  };
-
-  if (isPasswordProtected && !isUnlocked) {
-    return (
-      <div className="bg-gray-100 dark:bg-gray-800 rounded-xl p-12 text-center">
-        <div className="w-20 h-20 bg-yellow-100 dark:bg-yellow-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
-          <FiLock className="w-10 h-10 text-yellow-600" />
-        </div>
-        <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">Password Protected</h3>
-        <p className="text-gray-500 dark:text-gray-400 mb-4">This file is password protected</p>
-        <div className="flex flex-col items-center gap-3 max-w-xs mx-auto">
-          <input 
-            type="password" 
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Enter password"
-            className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-            onKeyPress={(e) => e.key === 'Enter' && handleUnlock()}
-          />
-          {unlockError && (
-            <p className="text-sm text-red-600">{unlockError}</p>
-          )}
-          <Button onClick={handleUnlock} loading={isUnlocking} className="w-full">
-            <FiUnlock className="mr-2" /> Unlock
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="w-full">
-      <div className="bg-gray-100 dark:bg-gray-800 rounded-xl p-8 flex flex-col items-center justify-center min-h-[400px]">
-        <div className="w-24 h-24 bg-gray-200 dark:bg-gray-700 rounded-2xl flex items-center justify-center mb-4">
-          <FiFile className="text-gray-500" size={48} />
-        </div>
-        <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">{file?.name}</h3>
-        <p className="text-gray-500 dark:text-gray-400 mb-4">File type: {file?.type || 'Unknown'}</p>
-        <div className="flex items-center gap-4 text-sm text-gray-500">
-          <span>{formatFileSize(file?.size)}</span>
-          <span>•</span>
-          <span>Uploaded by {file?.uploader || 'Unknown'}</span>
-        </div>
-        <div className="mt-6 flex gap-3">
-          <Button size="sm" onClick={onDownload}>
-            <FiDownload className="mr-2" /> Download
-          </Button>
-          <Button size="sm" variant="outline" onClick={onShare}>
-            <FiShare2 className="mr-2" /> Share
-          </Button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// ==================== Helper Functions ====================
+// ==================== File Helper ====================
 
 const getFileIcon = (type) => {
   const iconClass = 'w-5 h-5';
@@ -1069,25 +31,6 @@ const getFileIcon = (type) => {
   if (type?.includes('video')) return <FiVideo className={`${iconClass} text-purple-500`} />;
   if (type?.includes('audio')) return <FiMusic className={`${iconClass} text-green-500`} />;
   return <FiFile className={`${iconClass} text-gray-400`} />;
-};
-
-const getFilePreview = (file, onDownload, onShare, isPasswordProtected, onUnlock) => {
-  const type = file?.type || '';
-  const name = file?.name || '';
-  
-  if (type.includes('pdf')) return <PDFPreview file={file} onDownload={onDownload} isPasswordProtected={isPasswordProtected} onUnlock={onUnlock} />;
-  if (type.includes('image')) return <ImagePreview file={file} isPasswordProtected={isPasswordProtected} onUnlock={onUnlock} />;
-  if (type.includes('text') || type.includes('json') || type.includes('javascript') || 
-      type.includes('css') || type.includes('html') || type.includes('xml')) {
-    return <TextPreview file={file} isPasswordProtected={isPasswordProtected} onUnlock={onUnlock} />;
-  }
-  if (type.includes('video')) return <VideoPreview file={file} onDownload={onDownload} isPasswordProtected={isPasswordProtected} onUnlock={onUnlock} />;
-  if (type.includes('audio')) return <AudioPreview file={file} isPasswordProtected={isPasswordProtected} onUnlock={onUnlock} />;
-  if (type.includes('spreadsheet') || type.includes('excel') || type.includes('csv') ||
-      type.includes('sheet') || name.match(/\.(xlsx|xls|csv|ods)$/i)) {
-    return <ExcelPreview file={file} isPasswordProtected={isPasswordProtected} onUnlock={onUnlock} />;
-  }
-  return <DefaultPreview file={file} onDownload={onDownload} onShare={onShare} isPasswordProtected={isPasswordProtected} onUnlock={onUnlock} />;
 };
 
 // ==================== Main Component ====================
@@ -1114,9 +57,19 @@ export default function ViewDocument() {
         const normalized = {
           ...data,
           id: data.id || data._id,
-          url: data.filePath || data.url || data.content || (data.fileData ? `data:${data.type};base64,${data.fileData}` : undefined),
-          uploadDate: data.uploadDate || data.createdAt
+          // NOTE: `content` is the decoded file bytes as text and must NOT be
+          // used as a `url`. It is only consumed by TextPreview. Otherwise a
+          // DOCX/XLSX would end up with `url` = "PK..." (raw ZIP text).
+          url: data.filePath || data.url || (data.fileData ? `data:${data.type};base64,${data.fileData}` : undefined),
+          uploadDate: data.uploadDate || data.createdAt,
         };
+        // Debug: inspect what the backend actually returns.
+        console.log('getFile data:', data);
+        console.log('normalized:', normalized);
+        console.log('type:', normalized.type);
+        console.log('name:', normalized.name);
+        console.log('filePath:', normalized.filePath);
+        console.log('url:', normalized.url);
         setFile(normalized);
         if (normalized.qrCode) {
           setQrCodeUrl(normalized.qrCode);
@@ -1145,36 +98,14 @@ export default function ViewDocument() {
         await trackDownload(file.id || file._id || fileId);
       } catch { /* analytics is non-blocking */ }
 
-      // If file has a URL, fetch and download it
       if (file?.url) {
         const response = await fetch(file.url);
         const blob = await response.blob();
-        const downloadUrl = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = downloadUrl;
-        link.download = file?.name || 'document';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(downloadUrl);
+        triggerDownload(blob, file?.name || 'document');
         success('Download started!');
       } else if (file?.fileData || file?.content) {
-        // If file data is base64, decode and download
-        const data = file.fileData || file.content;
-        const binaryString = atob(data);
-        const bytes = new Uint8Array(binaryString.length);
-        for (let i = 0; i < binaryString.length; i++) {
-          bytes[i] = binaryString.charCodeAt(i);
-        }
-        const blob = new Blob([bytes], { type: file?.type || 'application/octet-stream' });
-        const downloadUrl = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = downloadUrl;
-        link.download = file?.name || 'document';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(downloadUrl);
+        const blob = base64ToBlob(file.fileData || file.content, file?.type);
+        triggerDownload(blob, file?.name || 'document');
         success('Download started!');
       } else {
         error('Unable to download file - no data available');
@@ -1221,6 +152,8 @@ export default function ViewDocument() {
       </div>
     );
   }
+
+  const PreviewComponent = getPreviewComponent(file);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -1334,7 +267,13 @@ export default function ViewDocument() {
 
                 {/* File Preview */}
                 <div className="rounded-xl overflow-hidden min-h-[400px] sm:min-h-[500px]">
-                  {getFilePreview(file, handleDownload, handleShare, isPasswordProtected, handleUnlock)}
+                  <PreviewComponent
+                    file={file}
+                    onDownload={handleDownload}
+                    onShare={handleShare}
+                    isPasswordProtected={isPasswordProtected}
+                    onUnlock={handleUnlock}
+                  />
                 </div>
 
                 {/* File Actions */}
@@ -1359,7 +298,7 @@ export default function ViewDocument() {
             <div className="hidden lg:block lg:col-span-1">
               <div className="sticky top-24">
                 {/* Desktop Sidebar Toggle Handle */}
-                <div 
+                <div
                   className="flex items-center justify-center py-2 mb-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
                   onClick={() => setIsSidebarOpen(!isSidebarOpen)}
                 >
@@ -1383,7 +322,7 @@ export default function ViewDocument() {
                           <code className="flex-1 px-1.5 py-0.5 text-[10px] font-mono text-gray-700 dark:text-gray-300 truncate">
                             {file?.shareableUrl || file?.shareableLink}
                           </code>
-                          <button 
+                          <button
                             onClick={() => handleCopy(file?.shareableUrl || file?.shareableLink)}
                             className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
                           >
@@ -1471,28 +410,28 @@ export default function ViewDocument() {
                         <h3 className="font-semibold text-sm text-gray-900 dark:text-white">Actions</h3>
                       </div>
                       <div className="grid grid-cols-2 gap-1.5">
-                        <button 
+                        <button
                           onClick={handleDownload}
                           className="flex flex-col items-center gap-0.5 p-1.5 bg-gray-50 dark:bg-gray-800/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                         >
                           <FiDownload className="w-3.5 h-3.5 text-blue-600" />
                           <span className="text-[10px] text-gray-600 dark:text-gray-400">Download</span>
                         </button>
-                        <button 
+                        <button
                           onClick={handleShare}
                           className="flex flex-col items-center gap-0.5 p-1.5 bg-gray-50 dark:bg-gray-800/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                         >
                           <FiShare2 className="w-3.5 h-3.5 text-purple-600" />
                           <span className="text-[10px] text-gray-600 dark:text-gray-400">Share</span>
                         </button>
-                        <button 
+                        <button
                           onClick={() => setShowQR(true)}
                           className="flex flex-col items-center gap-0.5 p-1.5 bg-gray-50 dark:bg-gray-800/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                         >
                           <FiCode className="w-3.5 h-3.5 text-green-600" />
                           <span className="text-[10px] text-gray-600 dark:text-gray-400">QR Code</span>
                         </button>
-                        <button 
+                        <button
                           onClick={() => setIsBookmarked(!isBookmarked)}
                           className="flex flex-col items-center gap-0.5 p-1.5 bg-gray-50 dark:bg-gray-800/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                         >
@@ -1523,7 +462,7 @@ export default function ViewDocument() {
               </Button>
             </div>
           </div>
-          
+
           <div className="text-center">
             <p className="text-sm text-gray-500 mb-3">Scan with your phone</p>
             <div className="inline-block bg-white dark:bg-gray-900 p-4 rounded-2xl border border-gray-200 dark:border-gray-700">
@@ -1534,7 +473,6 @@ export default function ViewDocument() {
               )}
             </div>
           </div>
-          </div>
 
           <div className="flex gap-3">
             <Button variant="outline" className="flex-1" onClick={() => handleCopy(file?.shareableUrl || file?.shareableLink)}>
@@ -1544,6 +482,7 @@ export default function ViewDocument() {
               <FiExternalLink className="mr-2" /> Open Link
             </Button>
           </div>
+        </div>
       </Modal>
 
       {/* QR Modal */}
@@ -1557,9 +496,9 @@ export default function ViewDocument() {
             )}
           </div>
           <p className="mt-4 text-sm text-gray-500">Scan to view this document</p>
-          <Button 
-            size="sm" 
-            variant="outline" 
+          <Button
+            size="sm"
+            variant="outline"
             className="mt-4"
             onClick={() => handleCopy(file?.shareableUrl || file?.shareableLink)}
           >

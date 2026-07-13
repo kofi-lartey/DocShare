@@ -182,6 +182,19 @@ export const deleteFile = async (fileId) => {
   return response.json();
 };
 
+export const convertFileToPdf = async (fileId, password) => {
+  const response = await fetch(`${API_BASE}/api/files/${fileId}/convert-pdf`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+    body: JSON.stringify(password ? { password } : {}),
+  });
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.message || 'Document conversion failed');
+  }
+  return response.json();
+};
+
 export const verifyPassword = async (fileId, password) => {
   const response = await fetch(`${API_BASE}/api/files/${fileId}/verify-password`, {
     method: 'POST',

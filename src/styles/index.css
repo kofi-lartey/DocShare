@@ -91,3 +91,66 @@
     animation: fade-in-up 0.8s ease-out forwards;
   }
 }
+
+/* ==================== Office document previews ==================== */
+
+/* Word (.docx) rendered by docx-preview. Force a light "page" surface so the
+   document is readable inside the dark-themed app shell. */
+.docx-viewer {
+  max-width: 816px; /* ~ US Letter at 96dpi */
+  margin: 0 auto;
+}
+.docx-viewer .docx-wrapper {
+  background: #ffffff;
+  padding: 0;
+  box-shadow: none;
+}
+.docx-viewer section.docx {
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+/* Force a light "page" surface so docx-preview content stays readable
+   inside the dark-themed app shell. */
+.docx-content {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+}
+
+/* Excel (.xls/.xlsx) rendered to an HTML table by SheetJS. Themed for
+   consistent presentation across light/dark modes. */
+.xlsx-render {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  color: #1f2937;
+}
+.xlsx-render table.xlsx-table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 13px;
+  background: #ffffff;
+}
+.xlsx-render table.xlsx-table th,
+.xlsx-render table.xlsx-table td {
+  border: 1px solid #d1d5db;
+  padding: 6px 10px;
+  text-align: left;
+  vertical-align: top;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 360px;
+}
+.xlsx-render table.xlsx-table thead th,
+.xlsx-render table.xlsx-table tr:first-child td {
+  background: #f3f4f6;
+  font-weight: 600;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+.xlsx-render table.xlsx-table tbody tr:nth-child(even) td {
+  background: #f9fafb;
+}
+.xlsx-render col {
+  /* widths are emitted inline by SheetJS from the sheet's !cols */
+}
+
