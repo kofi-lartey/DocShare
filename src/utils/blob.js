@@ -53,23 +53,31 @@ export function triggerDownload(blob, filename = 'document') {
 // Categorise a file into a stable key used by the preview registry. Office
 // formats are detected by extension FIRST because a DOCX/XLSX is a ZIP of XML
 // and many backends mislabel it as text/xml or application/octet-stream.
+//
+// IMPORTANT: the OpenXML MIME types both contain the substring
+// "officedocument" (…officedocument.wordprocessingml.document vs
+// …officedocument.spreadsheetml.sheet), so we must NOT use "officedocument" as
+// a word indicator — doing so routes every XLSX to WordPreview. Match the
+// specific "spreadsheetml"/"wordprocessingml" substrings instead, and check
+// spreadsheets before word so the shared "officedocument" prefix can't
+// misclassify an XLSX.
 export function getFileCategory(file) {
   const type = (file?.type || '').toLowerCase();
   const name = (file?.name || '').toLowerCase();
 
-  if (
-    name.endsWith('.docx') || name.endsWith('.doc') || name.endsWith('.rtf') ||
-    name.endsWith('.odt') ||
-    type.includes('word') || type.includes('officedocument')
-  ) {
-    return 'word';
-  }
   if (
     name.endsWith('.xlsx') || name.endsWith('.xls') || name.endsWith('.csv') ||
     name.endsWith('.ods') ||
     type.includes('spreadsheet') || type.includes('excel') || type.includes('sheet')
   ) {
     return 'excel';
+  }
+  if (
+    name.endsWith('.docx') || name.endsWith('.doc') || name.endsWith('.rtf') ||
+    name.endsWith('.odt') ||
+    type.includes('wordprocessingml') || type.includes('word')
+  ) {
+    return 'word';
   }
   if (type.includes('pdf')) return 'pdf';
   if (type.includes('image')) return 'image';
