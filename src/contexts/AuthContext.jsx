@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import { login as apiLogin, register as apiRegister, getMe, logout as apiLogout } from '../services/api';
+import { login as apiLogin, register as apiRegister, getMe, logout as apiLogout, sendOtpLogin as apiSendOtpLogin, loginWithOtp as apiLoginWithOtp } from '../services/api';
 
 const AuthContext = createContext(null);
 
@@ -54,6 +54,18 @@ export function AuthProvider({ children }) {
     return response;
   };
 
+  const sendOtpLogin = async (email) => {
+    const response = await apiSendOtpLogin(email);
+    return response;
+  };
+
+  const loginWithOtp = async (email, otp) => {
+    const response = await apiLoginWithOtp(email, otp);
+    localStorage.setItem('docshare_token', response.data.token);
+    setUser(response.data);
+    return response;
+  };
+
   const register = async (userData) => {
     const response = await apiRegister(userData);
     if (response.data.token) {
@@ -84,6 +96,8 @@ export function AuthProvider({ children }) {
     loading,
     isAuthenticated: !!user,
     login,
+    sendOtpLogin,
+    loginWithOtp,
     register,
     logout,
     updateUser,

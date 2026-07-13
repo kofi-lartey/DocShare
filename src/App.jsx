@@ -24,6 +24,11 @@ const Subscription = lazy(() => import('./pages/Subscription'));
 const ViewDocument = lazy(() => import('./pages/ViewDocument'));
 const Privacy = lazy(() => import('./pages/Privacy'));
 const Terms = lazy(() => import('./pages/Terms'));
+const Contact = lazy(() => import('./pages/Contact'));
+const CookiePolicy = lazy(() => import('./pages/CookiePolicy'));
+const SecurityPolicy = lazy(() => import('./pages/SecurityPolicy'));
+const Careers = lazy(() => import('./pages/Careers'));
+const About = lazy(() => import('./pages/About'));
 
 function App() {
   const [loading, setLoading] = useState(true);
@@ -47,6 +52,11 @@ function App() {
                 <Route path="/" element={<Landing />} />
                 <Route path="/privacy" element={<Privacy />} />
                 <Route path="/terms" element={<Terms />} />
+                <Route path="/contact" element={<Contact />} />
+                <Route path="/cookie-policy" element={<CookiePolicy />} />
+                <Route path="/security" element={<SecurityPolicy />} />
+                <Route path="/careers" element={<Careers />} />
+                <Route path="/about" element={<About />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />

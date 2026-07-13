@@ -731,10 +731,10 @@ const Landing = () => {
                 Share documents instantly with smart links. Built for teams that value simplicity, security, and speed.
               </p>
               <div className="flex gap-3 sm:gap-4 mt-4 sm:mt-6">
-                <a href="#" className="text-gray-400 hover:text-white transition-colors"><FiGithub className="w-4 h-4 sm:w-5 sm:h-5" /></a>
-                <a href="#" className="text-gray-400 hover:text-white transition-colors"><FiTwitter className="w-4 h-4 sm:w-5 sm:h-5" /></a>
-                <a href="#" className="text-gray-400 hover:text-white transition-colors"><FiLinkedin className="w-4 h-4 sm:w-5 sm:h-5" /></a>
-                <a href="#" className="text-gray-400 hover:text-white transition-colors"><FiYoutube className="w-4 h-4 sm:w-5 sm:h-5" /></a>
+                <a href="https://github.com/kofi-lartey?tab=repositories" className="text-gray-400 hover:text-white transition-colors"><FiGithub className="w-4 h-4 sm:w-5 sm:h-5" /></a>
+                <a href="https://twitter.com/kofilartey" className="text-gray-400 hover:text-white transition-colors"><FiTwitter className="w-4 h-4 sm:w-5 sm:h-5" /></a>
+                <a href="https://www.linkedin.com/in/alpheaus-gberbie-b6b141326/" className="text-gray-400 hover:text-white transition-colors"><FiLinkedin className="w-4 h-4 sm:w-5 sm:h-5" /></a>
+                <a href="https://www.youtube.com/@kofilartey" className="text-gray-400 hover:text-white transition-colors"><FiYoutube className="w-4 h-4 sm:w-5 sm:h-5" /></a>
               </div>
             </div>
             
@@ -751,20 +751,20 @@ const Landing = () => {
             <div>
               <h4 className="font-semibold mb-3 sm:mb-4 text-xs sm:text-sm uppercase tracking-wider text-gray-400">Company</h4>
               <ul className="space-y-2 sm:space-y-3 text-xs sm:text-sm text-gray-400">
-                <li><a href="#" className="hover:text-white transition-colors">About</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Blog</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Careers</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Contact</a></li>
+                 <li><Link to="/about" className="hover:text-white transition-colors">About</Link></li>
+                 <li><Link to="#" className="hover:text-white transition-colors">Blog</Link></li>
+                 <li><Link to="/careers" className="hover:text-white transition-colors">Careers</Link></li>
+                 <li><Link to="/contact" className="hover:text-white transition-colors">Contact</Link></li>
               </ul>
             </div>
             
             <div>
               <h4 className="font-semibold mb-3 sm:mb-4 text-xs sm:text-sm uppercase tracking-wider text-gray-400">Legal</h4>
               <ul className="space-y-2 sm:space-y-3 text-xs sm:text-sm text-gray-400">
-                <li><Link to="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link></li>
-                <li><Link to="/terms" className="hover:text-white transition-colors">Terms of Service</Link></li>
-                <li><a href="#" className="hover:text-white transition-colors">Cookie Policy</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Security</a></li>
+                 <li><Link to="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link></li>
+                 <li><Link to="/terms" className="hover:text-white transition-colors">Terms of Service</Link></li>
+                 <li><Link to="/cookie-policy" className="hover:text-white transition-colors">Cookie Policy</Link></li>
+                 <li><Link to="/security" className="hover:text-white transition-colors">Security</Link></li>
               </ul>
             </div>
           </div>
@@ -772,9 +772,9 @@ const Landing = () => {
           <div className="border-t border-gray-800 mt-8 sm:mt-12 pt-6 sm:pt-8 flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-4">
             <p className="text-xs sm:text-sm text-gray-500">© {new Date().getFullYear()} DocShare Pro. All rights reserved. Designed by kofilartey</p>
             <div className="flex gap-4 sm:gap-6 text-xs sm:text-sm text-gray-500">
-              <Link to="/privacy" className="hover:text-gray-400 transition-colors">Privacy</Link>
-              <Link to="/terms" className="hover:text-gray-400 transition-colors">Terms</Link>
-              <a href="#" className="hover:text-gray-400 transition-colors">Cookies</a>
+               <Link to="/privacy" className="hover:text-gray-400 transition-colors">Privacy</Link>
+               <Link to="/terms" className="hover:text-gray-400 transition-colors">Terms</Link>
+               <Link to="/cookie-policy" className="hover:text-gray-400 transition-colors">Cookies</Link>
             </div>
           </div>
         </div>

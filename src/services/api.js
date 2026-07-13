@@ -19,6 +19,32 @@ export const login = async (email, password) => {
   return response.json();
 };
 
+export const sendOtpLogin = async (email) => {
+  const response = await fetch(`${API_BASE}/api/auth/send-otp-login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to send verification code');
+  }
+  return response.json();
+};
+
+export const loginWithOtp = async (email, otp) => {
+  const response = await fetch(`${API_BASE}/api/auth/login-with-otp`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, otp }),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'OTP verification failed');
+  }
+  return response.json();
+};
+
 export const resendVerification = async (email) => {
   const response = await fetch(`${API_BASE}/api/auth/resend-verification`, {
     method: 'POST',

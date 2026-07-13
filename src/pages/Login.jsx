@@ -1,12 +1,12 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { 
   FiMail, FiLock, FiEye, FiEyeOff, 
-  FiArrowLeft, FiGithub, FiTwitter, FiLinkedin,
-  FiCheck, FiAlertCircle, FiRefreshCw
+  FiArrowLeft,
+  FiCheck, FiAlertCircle, FiRefreshCw, FiSmartphone
 } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
@@ -152,41 +152,12 @@ const PasswordField = ({ register, error, touched, value, disabled }) => {
   );
 };
 
-// Social Login Buttons
-const SocialLoginButtons = ({ disabled }) => {
-  const socialProviders = [
-    { icon: FiGithub, label: 'GitHub', color: 'hover:bg-gray-800 hover:text-white' },
-    { icon: FiTwitter, label: 'Twitter', color: 'hover:bg-blue-400 hover:text-white' },
-    { icon: FiLinkedin, label: 'LinkedIn', color: 'hover:bg-blue-600 hover:text-white' },
-  ];
-
-  return (
-    <div className="grid grid-cols-3 gap-3">
-      {socialProviders.map(({ icon: Icon, label, color }) => (
-        <button
-          key={label}
-          type="button"
-          className={cn(
-            'flex items-center justify-center py-3 border-2 border-gray-200 dark:border-gray-600 rounded-xl transition-all duration-200 group',
-            color,
-            disabled && 'opacity-50 cursor-not-allowed'
-          )}
-          disabled={disabled}
-        >
-          <Icon className="w-5 h-5 text-gray-600 dark:text-gray-400 group-hover:text-white transition-colors" />
-        </button>
-      ))}
-    </div>
-  );
-};
-
-
 // ==================== Main Component ====================
 
 export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login } = useAuth();
+  const { login, sendOtpLogin, loginWithOtp } = useAuth();
   const { success, error } = useNotification();
   const [isLoading, setIsLoading] = useState(false);
 
@@ -220,6 +191,102 @@ export default function Login() {
   };
 
   const isDisabled = isLoading || isSubmitting;
+
+  const [authMethod, setAuthMethod] = useState('password');
+  const [otpEmail, setOtpEmail] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
+  const [otp, setOtp] = useState(Array(6).fill(''));
+  const [otpLoading, setOtpLoading] = useState(false);
+  const [otpCountdown, setOtpCountdown] = useState(0);
+  const [otpResendCountdown, setOtpResendCountdown] = useState(0);
+  const [isNewUser, setIsNewUser] = useState(false);
+  const otpInputsRef = useRef([]);
+
+  const handleSendOtp = async (e) => {
+    e.preventDefault();
+    if (!otpEmail || !otpEmail.includes('@')) {
+      error('Please enter a valid email address');
+      return;
+    }
+    setOtpLoading(true);
+    try {
+      const response = await sendOtpLogin(otpEmail);
+      success(response.message || 'Verification code sent!');
+      setOtpSent(true);
+      setIsNewUser(response.data?.isNewUser || false);
+      setOtpCountdown(600);
+      setOtpResendCountdown(60);
+      otpInputsRef.current[0]?.focus();
+    } catch (err) {
+      error(err.message || 'Failed to send verification code');
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  const handleOtpLogin = async (e) => {
+    e.preventDefault();
+    const code = otp.join('');
+    if (code.length !== 6) {
+      error('Please enter the full 6-digit code');
+      return;
+    }
+    setOtpLoading(true);
+    try {
+      const response = await loginWithOtp(otpEmail, code);
+      success('Welcome!' + (isNewUser ? ' Your account has been created.' : ''));
+      const from = location.state?.from?.pathname || '/dashboard';
+      navigate(from);
+    } catch (err) {
+      error(err.message || 'Invalid or expired OTP');
+      setOtp(Array(6).fill(''));
+      otpInputsRef.current[0]?.focus();
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    setOtpLoading(true);
+    try {
+      const response = await sendOtpLogin(otpEmail);
+      success(response.message || 'A new verification code has been sent.');
+      setOtp(Array(6).fill(''));
+      setOtpCountdown(600);
+      setOtpResendCountdown(60);
+      otpInputsRef.current[0]?.focus();
+    } catch (err) {
+      error(err.message || 'Failed to resend code');
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    let otpTimer;
+    if (otpCountdown > 0 && otpSent) {
+      otpTimer = setInterval(() => {
+        setOtpCountdown(prev => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(otpTimer);
+  }, [otpCountdown, otpSent]);
+
+  useEffect(() => {
+    let resendTimer;
+    if (otpResendCountdown > 0 && otpSent) {
+      resendTimer = setInterval(() => {
+        setOtpResendCountdown(prev => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(resendTimer);
+  }, [otpResendCountdown, otpSent]);
+
+  const formatOtpTime = (seconds) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}:${s.toString().padStart(2, '0')}`;
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
@@ -262,7 +329,36 @@ export default function Login() {
               </p>
             </div>
 
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+            {/* Auth Method Tabs */}
+            <div className="flex p-1 bg-gray-100 dark:bg-gray-700 rounded-xl mb-6">
+              <button
+                type="button"
+                onClick={() => setAuthMethod('password')}
+                className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-medium rounded-lg transition-all ${
+                  authMethod === 'password'
+                    ? 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm'
+                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                }`}
+              >
+                <FiLock className="w-4 h-4" />
+                Password
+              </button>
+              <button
+                type="button"
+                onClick={() => setAuthMethod('otp')}
+                className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-medium rounded-lg transition-all ${
+                  authMethod === 'otp'
+                    ? 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm'
+                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                }`}
+              >
+                <FiSmartphone className="w-4 h-4" />
+                OTP Login
+              </button>
+            </div>
+
+            {authMethod === 'password' ? (
+              <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
               {/* Email Field */}
               <FormField
                 label="Email Address"
@@ -316,21 +412,117 @@ export default function Login() {
                  {isLoading || isSubmitting ? 'Signing in...' : 'Sign In'}
                </Button>
 
-               {/* Divider */}
-               <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-200 dark:border-gray-700"></div>
-                </div>
-                <div className="relative flex justify-center">
-                  <span className="px-4 bg-white dark:bg-gray-800 text-sm text-gray-500">
-                    Or continue with
-                  </span>
-                </div>
-              </div>
+             </form>
+            ) : (
+             <div className="space-y-5">
+               {!otpSent ? (
+                 <form onSubmit={handleSendOtp} className="space-y-5">
+                   <div>
+                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                       Email Address <span className="text-red-500">*</span>
+                     </label>
+                     <div className="relative group">
+                       <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-600 transition-colors">
+                         <FiMail className="w-5 h-5" />
+                       </div>
+                       <input
+                         type="email"
+                         value={otpEmail}
+                         onChange={(e) => setOtpEmail(e.target.value)}
+                         className="w-full pl-11 pr-4 py-3.5 bg-gray-50/80 dark:bg-gray-700/50 border-2 border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none text-gray-900 dark:text-white placeholder:text-gray-400"
+                         placeholder="you@example.com"
+                         disabled={otpLoading}
+                       />
+                     </div>
+                   </div>
 
-              {/* Social Login */}
-              <SocialLoginButtons disabled={isDisabled} />
-            </form>
+                   <Button
+                     type="submit"
+                     loading={otpLoading}
+                     disabled={otpLoading}
+                     className="w-full h-12 text-base font-semibold bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 transition-all duration-300"
+                   >
+                     {otpLoading ? 'Sending...' : 'Send OTP'}
+                   </Button>
+                 </form>
+               ) : (
+                 <form onSubmit={handleOtpLogin} className="space-y-5">
+                   <div>
+                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                       Enter 6-digit code sent to <span className="font-medium text-gray-900 dark:text-white break-all">{otpEmail}</span>
+                     </label>
+                     <div className="flex justify-between gap-2">
+                       {Array.from({ length: 6 }).map((_, index) => (
+                         <input
+                           key={index}
+                           ref={el => otpInputsRef.current[index] = el}
+                           type="text"
+                           inputMode="numeric"
+                           maxLength={1}
+                           value={otp[index]}
+                           onChange={(e) => {
+                             if (!/^\d*$/.test(e.target.value)) return;
+                             const newOtp = [...otp];
+                             newOtp[index] = e.target.value.slice(-1);
+                             setOtp(newOtp);
+                             if (e.target.value && index < 5) {
+                               otpInputsRef.current[index + 1]?.focus();
+                             }
+                           }}
+                           onKeyDown={(e) => {
+                             if (e.key === 'Backspace' && !otp[index] && index > 0) {
+                               otpInputsRef.current[index - 1]?.focus();
+                             }
+                           }}
+                           className="w-10 h-12 sm:w-12 sm:h-14 text-center text-lg sm:text-xl font-bold border-2 rounded-xl outline-none transition-all duration-200 bg-gray-50/80 dark:bg-gray-700/50 text-gray-900 dark:text-white border-gray-200 dark:border-gray-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                         />
+                       ))}
+                     </div>
+                     <div className="flex items-center justify-between mt-3">
+                       <button
+                         type="button"
+                         onClick={() => { setOtpSent(false); setOtp(Array(6).fill('')); }}
+                         className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 inline-flex items-center gap-1 transition-colors"
+                       >
+                         <FiArrowLeft className="w-3 h-3" />
+                         Change email
+                       </button>
+                       <p className={`text-xs font-medium ${otpCountdown > 0 ? 'text-gray-500 dark:text-gray-400' : 'text-red-500'}`}>
+                         {otpCountdown > 0 ? `Expires in ${formatOtpTime(otpCountdown)}` : 'Code expired'}
+                       </p>
+                     </div>
+                   </div>
+
+                   <Button
+                     type="submit"
+                     loading={otpLoading}
+                     disabled={otpLoading || otp.some(d => d === '')}
+                     className="w-full h-12 text-base font-semibold bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 transition-all duration-300"
+                   >
+                     {otpLoading ? 'Verifying...' : 'Verify & Login'}
+                   </Button>
+
+                   <div className="text-center">
+                     {otpResendCountdown > 0 ? (
+                       <p className="text-xs text-gray-500 dark:text-gray-400">
+                         Resend in {formatOtpTime(otpResendCountdown)}
+                       </p>
+                     ) : (
+                       <button
+                         type="button"
+                         onClick={handleResendOtp}
+                         disabled={otpLoading}
+                         className="inline-flex items-center gap-1.5 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium transition-colors"
+                       >
+                         <FiRefreshCw className="w-3 h-3" />
+                         Resend Code
+                       </button>
+                     )}
+                   </div>
+                 </form>
+               )}
+             </div>
+           )}
           </CardContent>
 
           <CardFooter align="center" className="border-t border-gray-200/50 dark:border-gray-700/50 pt-6">
