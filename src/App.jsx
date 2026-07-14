@@ -4,6 +4,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { NotificationProvider } from './contexts/NotificationContext';
 import ProtectedRoute from './components/layout/ProtectedRoute';
+import AdminRoute from './components/layout/AdminRoute';
 import DashboardLayout from './components/layout/DashboardLayout';
 import ConsentBanner from './components/common/ConsentBanner';
 import { PageLoader } from './components/common/Spinner';
@@ -29,6 +30,17 @@ const CookiePolicy = lazy(() => import('./pages/CookiePolicy'));
 const SecurityPolicy = lazy(() => import('./pages/SecurityPolicy'));
 const Careers = lazy(() => import('./pages/Careers'));
 const About = lazy(() => import('./pages/About'));
+
+// ---- Admin Console (distinct route tree) ----
+const AdminLogin = lazy(() => import('./admin/pages/AdminLogin'));
+const AdminMfaVerify = lazy(() => import('./admin/pages/MfaVerify'));
+const AdminSetup = lazy(() => import('./admin/pages/Setup'));
+const AdminLayout = lazy(() => import('./admin/AdminLayout'));
+const AdminUsers = lazy(() => import('./admin/pages/Users'));
+const AdminCoupons = lazy(() => import('./admin/pages/Coupons'));
+const AdminAnalytics = lazy(() => import('./admin/pages/Analytics'));
+const AdminSecurity = lazy(() => import('./admin/pages/Security'));
+
 
 function App() {
   const [loading, setLoading] = useState(true);
@@ -71,6 +83,18 @@ function App() {
                   <Route path="my-uploads" element={<MyUploads />} />
                   <Route path="settings" element={<Settings />} />
                   <Route path="subscription" element={<Subscription />} />
+                </Route>
+
+                {/* Admin Console — distinct shell, gated by AdminRoute */}
+                <Route path="/admin/login" element={<AdminLogin />} />
+                <Route path="/admin/login/verify" element={<AdminMfaVerify />} />
+                <Route path="/admin/setup" element={<AdminSetup />} />
+                <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
+                  <Route index element={<Navigate to="/admin/users" replace />} />
+                  <Route path="users" element={<AdminUsers />} />
+                  <Route path="coupons" element={<AdminCoupons />} />
+                  <Route path="analytics" element={<AdminAnalytics />} />
+                  <Route path="security" element={<AdminSecurity />} />
                 </Route>
 
                 <Route path="*" element={<Navigate to="/" replace />} />

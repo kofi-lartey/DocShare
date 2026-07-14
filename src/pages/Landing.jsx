@@ -6,7 +6,7 @@ import {
   FiTwitter, FiLinkedin, FiYoutube, FiPlay, FiChevronRight,
   FiRefreshCw, FiUsers, FiFileText, FiClock, FiTrendingUp,
   FiCamera, FiVideo, FiImage, FiPlayCircle, FiPauseCircle, FiMoon, FiSun,
-  FiHome, FiGrid, FiDollarSign, FiMessageSquare
+  FiHome, FiGrid, FiDollarSign, FiMessageSquare, FiShield
 } from 'react-icons/fi';
 import { RiQrCodeLine } from 'react-icons/ri';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -208,6 +208,10 @@ const Landing = () => {
             </div>
             
             <div className="flex items-center gap-3">
+              <Link to="/admin/login" className="hidden sm:inline-flex items-center gap-1.5 text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-900 transition-all">
+                <FiShield className="w-4 h-4" />
+                Admin
+              </Link>
               {isAuthenticated ? (
                 <Link to="/dashboard" className="flex items-center gap-2 group">
                   <div className="relative">
