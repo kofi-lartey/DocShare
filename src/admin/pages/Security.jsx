@@ -51,7 +51,11 @@ export default function Security() {
     {
       header: 'When', accessorKey: 'at',
       cell: ({ getValue }) => {
-        const formatted = formatDateTime(getValue);
+        const value = getValue;
+        if (value === null || value === undefined || value === '') {
+          return <span className="text-xs text-admin-400">—</span>;
+        }
+        const formatted = formatDateTime(value);
         const bad = formatted === 'Invalid Date';
         return (
           <span className={bad ? 'text-xs font-medium text-red-500' : 'text-xs'}>
