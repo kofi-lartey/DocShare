@@ -121,16 +121,6 @@ export default function Navbar({ onMenuClick, isMobile, sidebarOpen }) {
             </Link>
           )}
 
-          {/* Admin Login */}
-          <Link
-            to="/admin/login"
-            title="Admin Console"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium text-admin-600 dark:text-accent-300 hover:bg-admin-50 dark:hover:bg-accent-600/10 border border-admin-200 dark:border-accent-600/30 transition-colors"
-          >
-            <FiShield className="w-4 h-4" />
-            <span className="hidden sm:inline">Admin</span>
-          </Link>
-
           {/* Notifications */}
           <div className="relative" ref={notificationsRef}>
             <button
