@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { FiSearch, FiCommand, FiSun, FiMoon, FiLogOut, FiCalendar } from 'react-icons/fi';
+import { FiSearch, FiCommand, FiSun, FiMoon, FiLogOut, FiCalendar, FiMenu } from 'react-icons/fi';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useNotification } from '../../contexts/NotificationContext';
 import { useAdminStore } from '../store';
@@ -16,7 +16,7 @@ export default function AdminTopbar({ title, subtitle }) {
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
   const { success } = useNotification();
-  const { range, setRange, setPaletteOpen } = useAdminStore();
+  const { range, setRange, setPaletteOpen, toggleMobileNav } = useAdminStore();
 
   const handleLogout = async () => {
     await adminLogout();
@@ -26,9 +26,14 @@ export default function AdminTopbar({ title, subtitle }) {
 
   return (
     <header className="sticky top-0 z-30 flex items-center justify-between gap-4 px-4 md:px-6 h-16 bg-white/80 dark:bg-admin-900/80 backdrop-blur border-b border-admin-200 dark:border-admin-800">
-      <div className="min-w-0">
-        <h1 className="text-lg font-semibold text-admin-900 dark:text-white truncate">{title}</h1>
-        {subtitle && <p className="text-xs text-admin-400 dark:text-admin-500 truncate">{subtitle}</p>}
+      <div className="flex items-center gap-3 min-w-0">
+        <button onClick={toggleMobileNav} className="lg:hidden p-2 -ml-2 rounded-xl text-admin-500 hover:bg-admin-50 dark:hover:bg-admin-800 transition-colors" title="Open menu">
+          <FiMenu className="w-5 h-5" />
+        </button>
+        <div className="min-w-0">
+          <h1 className="text-lg font-semibold text-admin-900 dark:text-white truncate">{title}</h1>
+          {subtitle && <p className="text-xs text-admin-400 dark:text-admin-500 truncate">{subtitle}</p>}
+        </div>
       </div>
 
       <div className="flex items-center gap-2">

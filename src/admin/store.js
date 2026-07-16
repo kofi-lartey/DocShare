@@ -9,4 +9,9 @@ export const useAdminStore = create((set) => ({
 
   range: '30d',
   setRange: (range) => set({ range }),
+
+  mobileNavOpen: false,
+  setMobileNavOpen: (mobileNavOpen) => set({ mobileNavOpen }),
+  toggleMobileNav: () => set((s) => ({ mobileNavOpen: !s.mobileNavOpen })),
+  closeMobileNav: () => set({ mobileNavOpen: false }),
 }));

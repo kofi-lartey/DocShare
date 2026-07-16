@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import AdminSidebar from './components/AdminSidebar';
 import AdminTopbar from './components/AdminTopbar';
 import CommandPalette from './components/CommandPalette';
+import { useAdminStore } from './store';
 
 const META = {
   '/admin/users': { title: 'User Management', subtitle: 'Create, read, update and delete user accounts' },
@@ -14,12 +15,37 @@ const META = {
 export default function AdminLayout() {
   const location = useLocation();
   const meta = META[location.pathname] || { title: 'Admin Console', subtitle: '' };
+  const { mobileNavOpen, closeMobileNav } = useAdminStore();
 
   return (
     <div className="flex h-screen bg-admin-50 dark:bg-admin-950 text-admin-900 dark:text-admin-100 overflow-hidden">
       <div className="hidden lg:block">
         <AdminSidebar />
       </div>
+
+      <AnimatePresence>
+        {mobileNavOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              onClick={closeMobileNav}
+              className="lg:hidden fixed inset-0 z-40 bg-admin-950/60 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ x: '-100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '-100%' }}
+              transition={{ type: 'tween', duration: 0.25 }}
+              className="lg:hidden fixed inset-y-0 left-0 z-50"
+            >
+              <AdminSidebar variant="drawer" onNavigate={closeMobileNav} />
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       <div className="flex-1 flex flex-col overflow-hidden">
         <AdminTopbar title={meta.title} subtitle={meta.subtitle} />
