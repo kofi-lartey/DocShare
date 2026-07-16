@@ -45,13 +45,13 @@ export default function Security() {
         );
       },
     },
-    { header: 'Target', accessorKey: 'target', cell: ({ getValue }) => <span className="font-mono text-xs">{getValue || '—'}</span> },
-    { header: 'Actor', accessorKey: 'actor', cell: ({ getValue }) => <span className="text-xs text-admin-500">{getValue || '—'}</span> },
-    { header: 'IP', accessorKey: 'ip', cell: ({ getValue }) => <span className="font-mono text-xs text-admin-400">{getValue || '—'}</span> },
+    { header: 'Target', accessorKey: 'target', cell: ({ getValue }) => <span className="font-mono text-xs">{getValue() || '—'}</span> },
+    { header: 'Actor', accessorKey: 'actor', cell: ({ getValue }) => <span className="text-xs text-admin-500">{getValue() || '—'}</span> },
+    { header: 'IP', accessorKey: 'ip', cell: ({ getValue }) => <span className="font-mono text-xs text-admin-400">{getValue() || '—'}</span> },
     {
       header: 'When', accessorKey: 'at',
       cell: ({ getValue }) => {
-        const value = getValue;
+        const value = getValue();
         if (value === null || value === undefined || value === '') {
           return <span className="text-xs text-admin-400">—</span>;
         }
