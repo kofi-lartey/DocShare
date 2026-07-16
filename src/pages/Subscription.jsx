@@ -5,7 +5,7 @@ import {
   FiTrendingUp, FiUsers, FiDatabase, FiClock,
   FiShield, FiZap, FiArrowRight, FiInfo,
   FiCheckCircle, FiAlertCircle, FiX,
-  FiLock, FiUnlock, FiRefreshCw, FiFile,
+  FiLock, FiUnlock, FiRefreshCw, FiFile, FiGift,
   FiImage, FiVideo, FiMusic, FiFileText
 } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -350,6 +350,10 @@ Period End,${invoice.billingPeriod?.end ? new Date(invoice.billingPeriod.end).to
     setCouponError('');
   };
 
+  // A coupon that brings the price to 0 means the user pays nothing and the
+  // plan is activated immediately without a payment provider.
+  const isFreeCoupon = Boolean(appliedCoupon) && Number(appliedCoupon.finalAmount) <= 0;
+
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px]">
@@ -638,8 +642,9 @@ Period End,${invoice.billingPeriod?.end ? new Date(invoice.billingPeriod.end).to
                     {appliedCoupon.code} applied
                   </p>
                   <p className="text-xs text-gray-500">
-                    {appliedCoupon.currency} {appliedCoupon.discountAmount} off
-                    {' '}· pay {appliedCoupon.currency} {appliedCoupon.finalAmount}
+                    {isFreeCoupon
+                      ? '100% off · you pay nothing'
+                      : `${appliedCoupon.currency} ${appliedCoupon.discountAmount} off · pay ${appliedCoupon.currency} ${appliedCoupon.finalAmount}`}
                   </p>
                 </div>
                 <button
@@ -675,42 +680,51 @@ Period End,${invoice.billingPeriod?.end ? new Date(invoice.billingPeriod.end).to
           </div>
 
           <div className="space-y-4">
-            <div>
-              <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">
-                Payment Method
-              </label>
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  onClick={() => setPaymentProvider('stripe')}
-                  className={cn(
-                    'p-3 border rounded-xl flex items-center justify-center gap-2 transition-all',
-                    paymentProvider === 'stripe'
-                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                      : 'border-gray-300 dark:border-gray-600'
-                  )}
-                >
-                  <span className="font-semibold text-blue-600">Stripe</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPaymentProvider('paystack')}
-                  className={cn(
-                    'p-3 border rounded-xl flex items-center justify-center gap-2 transition-all',
-                    paymentProvider === 'paystack'
-                      ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
-                      : 'border-gray-300 dark:border-gray-600'
-                  )}
-                >
-                  <span className="font-semibold text-green-600">Paystack</span>
-                </button>
+            {isFreeCoupon ? (
+              <div className="flex items-center gap-2 p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg text-xs text-emerald-700 dark:text-emerald-300">
+                <FiGift className="w-4 h-4 flex-shrink-0" />
+                <span>This coupon covers the full price — no payment required. Your plan will be activated instantly.</span>
               </div>
-            </div>
+            ) : (
+              <>
+                <div>
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">
+                    Payment Method
+                  </label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setPaymentProvider('stripe')}
+                      className={cn(
+                        'p-3 border rounded-xl flex items-center justify-center gap-2 transition-all',
+                        paymentProvider === 'stripe'
+                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                          : 'border-gray-300 dark:border-gray-600'
+                      )}
+                    >
+                      <span className="font-semibold text-blue-600">Stripe</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPaymentProvider('paystack')}
+                      className={cn(
+                        'p-3 border rounded-xl flex items-center justify-center gap-2 transition-all',
+                        paymentProvider === 'paystack'
+                          ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
+                          : 'border-gray-300 dark:border-gray-600'
+                      )}
+                    >
+                      <span className="font-semibold text-green-600">Paystack</span>
+                    </button>
+                  </div>
+                </div>
 
-            <div className="flex items-center gap-2 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-xs text-blue-700 dark:text-blue-300">
-              <FiLock className="w-4 h-4 flex-shrink-0" />
-              <span>You'll be redirected to {paymentProvider === 'stripe' ? 'Stripe' : 'Paystack'} to complete payment</span>
-            </div>
+                <div className="flex items-center gap-2 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-xs text-blue-700 dark:text-blue-300">
+                  <FiLock className="w-4 h-4 flex-shrink-0" />
+                  <span>You'll be redirected to {paymentProvider === 'stripe' ? 'Stripe' : 'Paystack'} to complete payment</span>
+                </div>
+              </>
+            )}
           </div>
         </div>
 
@@ -727,8 +741,17 @@ Period End,${invoice.billingPeriod?.end ? new Date(invoice.billingPeriod.end).to
             loading={submitting}
             className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
           >
-            <FiLock className="w-4 h-4 mr-2" />
-            Proceed to Payment
+            {isFreeCoupon ? (
+              <>
+                <FiGift className="w-4 h-4 mr-2" />
+                Activate Free Plan
+              </>
+            ) : (
+              <>
+                <FiLock className="w-4 h-4 mr-2" />
+                Proceed to Payment
+              </>
+            )}
           </Button>
         </div>
       </Modal>

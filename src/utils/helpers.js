@@ -14,6 +14,7 @@ export function formatFileSize(bytes) {
 }
 
 export function formatDate(dateString) {
+  if (!isValidDate(dateString)) return '—';
   return new Date(dateString).toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'long',

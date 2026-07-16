@@ -24,13 +24,15 @@ const schema = z.object({
 });
 
 function CouponEditor({ open, initial, onClose, onSubmit }) {
-  const { register, handleSubmit, reset, formState: { errors } } = useForm({
+  const { register, handleSubmit, reset, setValue, watch, formState: { errors } } = useForm({
     resolver: zodResolver(schema),
     defaultValues: { code: '', type: 'percentage', value: 10, currency: 'GHS', appliesTo: [], minAmount: 0, maxRedemptions: '', description: '' },
   });
   useEffect(() => {
     if (open) reset(initial || { code: '', type: 'percentage', value: 10, currency: 'GHS', appliesTo: [], minAmount: 0, maxRedemptions: '', description: '' });
   }, [open, initial, reset]);
+
+  const isFree = watch('type') === 'percentage' && Number(watch('value')) >= 100;
 
   return (
     <Modal
@@ -49,14 +51,33 @@ function CouponEditor({ open, initial, onClose, onSubmit }) {
         <div className="grid grid-cols-3 gap-3">
           <div>
             <label className="block text-sm font-medium text-admin-700 dark:text-admin-300 mb-1">Type</label>
-            <select {...register('type')} className="w-full rounded-lg border border-admin-300 dark:border-admin-700 bg-white dark:bg-admin-900 px-3 py-2.5 text-sm">
+            <select
+              {...register('type')}
+              className="w-full rounded-lg border border-admin-300 dark:border-admin-700 bg-white dark:bg-admin-900 px-3 py-2.5 text-sm"
+            >
               <option value="percentage">% Off</option>
               <option value="fixed">Fixed</option>
             </select>
           </div>
-          <Input label="Value" type="number" {...register('value')} error={errors.value?.message} />
+          <Input label="Value" type="number" {...register('value')} error={errors.value?.message} disabled={isFree} />
           <Input label="Currency" {...register('currency')} />
         </div>
+        <label className="flex items-center gap-2 text-sm text-admin-700 dark:text-admin-200">
+          <input
+            type="checkbox"
+            checked={isFree}
+            onChange={(e) => {
+              if (e.target.checked) {
+                setValue('type', 'percentage');
+                setValue('value', 100, { shouldValidate: true });
+              } else {
+                setValue('value', 10, { shouldValidate: true });
+              }
+            }}
+            className="rounded border-admin-300"
+          />
+          Make this coupon 100% free
+        </label>
         <div className="grid grid-cols-2 gap-3">
           <Input label="Min Amount" type="number" {...register('minAmount')} />
           <Input label="Max Redemptions" type="number" {...register('maxRedemptions')} placeholder="blank = unlimited" />
@@ -138,7 +159,13 @@ export default function Coupons() {
     },
     {
       header: 'Discount', accessorKey: 'value',
-      cell: ({ row }) => <span className="tabular-nums font-medium">{row.original.type === 'percentage' ? `${row.original.value}%` : `${row.original.currency} ${row.original.value}`}</span>,
+      cell: ({ row }) => {
+        const { type, value, currency } = row.original;
+        const isFree = type === 'percentage' && Number(value) >= 100;
+        return isFree
+          ? <span className="tabular-nums font-semibold text-emerald-600">Free</span>
+          : <span className="tabular-nums font-medium">{type === 'percentage' ? `${value}%` : `${currency} ${value}`}</span>;
+      },
     },
     {
       header: 'Redemptions', accessorKey: 'usedCount',
@@ -167,7 +194,10 @@ export default function Coupons() {
     },
     {
       header: 'Expires', accessorKey: 'validTo',
-      cell: ({ getValue }) => <span className="text-xs">{getValue ? formatDate(getValue) : 'Never'}</span>,
+      cell: ({ getValue }) => {
+        const value = getValue();
+        return <span className="text-xs">{value ? formatDate(value) : 'Never'}</span>;
+      },
     },
     {
       header: '', id: 'actions', sortable: false,
