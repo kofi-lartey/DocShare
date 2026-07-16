@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
+import BrandLogo from '../components/common/BrandLogo';
 import { 
   FiCheck, FiCreditCard, FiStar, 
   FiZap, FiArrowRight, FiInfo,
