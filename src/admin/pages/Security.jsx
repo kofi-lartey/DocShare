@@ -45,10 +45,21 @@ export default function Security() {
         );
       },
     },
-    { header: 'Target', accessorKey: 'target', cell: ({ getValue }) => <span className="font-mono text-xs">{getValue}</span> },
-    { header: 'Actor', accessorKey: 'actor', cell: ({ getValue }) => <span className="text-xs text-admin-500">{getValue}</span> },
-    { header: 'IP', accessorKey: 'ip', cell: ({ getValue }) => <span className="font-mono text-xs text-admin-400">{getValue}</span> },
-    { header: 'When', accessorKey: 'at', cell: ({ getValue }) => <span className="text-xs">{formatDateTime(getValue)}</span> },
+    { header: 'Target', accessorKey: 'target', cell: ({ getValue }) => <span className="font-mono text-xs">{getValue || '—'}</span> },
+    { header: 'Actor', accessorKey: 'actor', cell: ({ getValue }) => <span className="text-xs text-admin-500">{getValue || '—'}</span> },
+    { header: 'IP', accessorKey: 'ip', cell: ({ getValue }) => <span className="font-mono text-xs text-admin-400">{getValue || '—'}</span> },
+    {
+      header: 'When', accessorKey: 'at',
+      cell: ({ getValue }) => {
+        const formatted = formatDateTime(getValue);
+        const bad = formatted === 'Invalid Date';
+        return (
+          <span className={bad ? 'text-xs font-medium text-red-500' : 'text-xs'}>
+            {formatted}
+          </span>
+        );
+      },
+    },
   ];
 
   return (

@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { FiShield, FiMail, FiLock, FiKey, FiCheck } from 'react-icons/fi';
+import { FiShield, FiMail, FiLock, FiKey, FiCheck, FiAlertCircle } from 'react-icons/fi';
 import Input from '../../components/common/Input';
 import { useNotification } from '../../contexts/NotificationContext';
 import { adminSetup, hasAdmin } from '../adminApi';
@@ -8,13 +7,18 @@ import { adminSetup, hasAdmin } from '../adminApi';
 // Restricted onboarding: initializes the single, unique Administrator.
 // Backend enforces that this succeeds only when zero admins exist.
 export default function Setup() {
-  const navigate = useNavigate();
   const { success, error: toastError } = useNotification();
   const [form, setForm] = useState({ email: '', password: '', adminCode: '', confirmCode: '', mfaMethod: 'password+code' });
   const [loading, setLoading] = useState(false);
-  const [exists, setExists] = useState(false);
+  const [checking, setChecking] = useState(true);
+  const [adminExists, setAdminExists] = useState(false);
 
-  useEffect(() => { hasAdmin().then((r) => { if (r.data.exists) { setExists(true); navigate('/admin/login', { replace: true }); } }); }, [navigate]);
+  useEffect(() => {
+    hasAdmin().then((r) => {
+      setAdminExists(r.data.exists);
+      setChecking(false);
+    }).catch(() => setChecking(false));
+  }, []);
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
@@ -26,7 +30,6 @@ export default function Setup() {
     try {
       await adminSetup(form);
       success('Administrator initialized');
-      navigate('/admin/users');
     } catch (err) {
       toastError(err.message);
     } finally {
@@ -34,7 +37,31 @@ export default function Setup() {
     }
   };
 
-  if (exists) return null;
+  if (checking) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-admin-950 px-4">
+        <div className="w-full max-w-md text-center">
+          <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-accent-500 to-violet-600 text-white shadow-lg mb-4"><FiShield className="w-6 h-6" /></div>
+          <p className="text-admin-300 text-sm">Checking administrator status...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (adminExists) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-admin-950 px-4">
+        <div className="w-full max-w-md text-center">
+          <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-accent-500 to-violet-600 text-white shadow-lg mb-4"><FiShield className="w-6 h-6" /></div>
+          <h1 className="text-xl font-bold text-white mb-2">Administrator Already Exists</h1>
+          <p className="text-xs text-admin-400 mb-6">An administrator has already been initialized. Use the login page to access the admin console.</p>
+          <a href="/admin/login" className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-accent-600 text-white font-medium hover:bg-accent-700">
+            Go to Admin Login
+          </a>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-admin-950 px-4">

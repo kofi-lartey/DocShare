@@ -21,7 +21,16 @@ export function formatDate(dateString) {
   });
 }
 
+export function isValidDate(value) {
+  if (value instanceof Date) return !Number.isNaN(value.getTime());
+  if (typeof value === 'string' || typeof value === 'number') {
+    return !Number.isNaN(new Date(value).getTime());
+  }
+  return false;
+}
+
 export function formatDateTime(dateString) {
+  if (!isValidDate(dateString)) return 'Invalid Date';
   return new Date(dateString).toLocaleString('en-US', {
     year: 'numeric',
     month: 'short',

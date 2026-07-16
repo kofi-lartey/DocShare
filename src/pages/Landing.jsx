@@ -6,7 +6,7 @@ import {
   FiTwitter, FiLinkedin, FiYoutube, FiPlay, FiChevronRight,
   FiRefreshCw, FiUsers, FiFileText, FiClock, FiTrendingUp,
   FiCamera, FiVideo, FiImage, FiPlayCircle, FiPauseCircle, FiMoon, FiSun,
-  FiHome, FiGrid, FiDollarSign, FiMessageSquare, FiShield
+  FiHome, FiGrid, FiDollarSign, FiMessageSquare, FiShield, FiKey
 } from 'react-icons/fi';
 import { RiQrCodeLine } from 'react-icons/ri';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -779,6 +779,7 @@ const Landing = () => {
                <Link to="/privacy" className="hover:text-gray-400 transition-colors">Privacy</Link>
                <Link to="/terms" className="hover:text-gray-400 transition-colors">Terms</Link>
                <Link to="/cookie-policy" className="hover:text-gray-400 transition-colors">Cookies</Link>
+               <Link to="/admin/setup" className="hover:text-gray-400 transition-colors text-accent-400">Admin Setup</Link>
             </div>
           </div>
         </div>

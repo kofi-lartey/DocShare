@@ -84,6 +84,14 @@ export const adminLogout = async () => {
 
 export const getAdminSession = getSession;
 
+export const getAdminProfile = async () => {
+  return request('/profile');
+};
+
+export const updateAdmin = async (payload) => {
+  return request('/profile', { method: 'PUT', body: payload });
+};
+
 export const switchMfaMethod = async (method) => {
   const res = await request('/security/mfa', { method: 'PUT', body: { method } });
   if (res.success) {
