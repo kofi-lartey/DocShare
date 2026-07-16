@@ -3,7 +3,7 @@ import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   FiUsers, FiTag, FiBarChart2, FiShield, FiChevronLeft, FiChevronRight,
-  FiZap, FiX,
+  FiZap, FiX, FiHome,
 } from 'react-icons/fi';
 import { cn } from '../../utils/helpers';
 import { getAdminSession } from '../adminApi';
@@ -86,7 +86,29 @@ export default function AdminSidebar({ variant = 'sidebar', onNavigate }) {
       )}
 
       <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-        {(!collapsed || isDrawer) && <p className="px-2 text-[10px] font-semibold text-admin-400 uppercase tracking-widest mb-2">Management</p>}
+        <a
+          href="/"
+          onClick={handleNav}
+          className={cn(
+            'group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors',
+            'text-admin-300 hover:bg-admin-800 hover:text-white'
+          )}
+        >
+          <FiHome className="w-5 h-5 flex-shrink-0 text-admin-400 group-hover:text-white" />
+          {(!collapsed || isDrawer) && (
+            <span className="flex flex-col">
+              <span>Home</span>
+              <span className="text-[10px] text-admin-500 group-hover:text-admin-400">Back to site</span>
+            </span>
+          )}
+          {collapsed && !isDrawer && (
+            <span className="absolute left-16 px-2 py-1 rounded-lg bg-admin-800 text-white text-xs opacity-0 group-hover:opacity-100 pointer-events-none z-50 whitespace-nowrap">
+              Home
+            </span>
+          )}
+        </a>
+
+        {(!collapsed || isDrawer) && <p className="px-2 text-[10px] font-semibold text-admin-400 uppercase tracking-widest mb-2 mt-3">Management</p>}
         {NAV.map((item) => {
           const active = location.pathname.startsWith(item.path);
           return (

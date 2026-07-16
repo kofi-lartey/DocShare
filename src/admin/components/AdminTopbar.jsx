@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { FiSearch, FiCommand, FiSun, FiMoon, FiLogOut, FiCalendar, FiMenu } from 'react-icons/fi';
+import { FiSearch, FiCommand, FiSun, FiMoon, FiLogOut, FiCalendar, FiMenu, FiHome } from 'react-icons/fi';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useNotification } from '../../contexts/NotificationContext';
 import { useAdminStore } from '../store';
@@ -66,6 +66,10 @@ export default function AdminTopbar({ title, subtitle }) {
 
         <button onClick={toggleTheme} className="p-2 rounded-xl text-admin-500 hover:bg-admin-50 dark:hover:bg-admin-800 transition-colors" title="Toggle theme">
           {theme === 'dark' ? <FiSun className="w-5 h-5" /> : <FiMoon className="w-5 h-5" />}
+        </button>
+
+        <button onClick={() => navigate('/')} className="p-2 rounded-xl text-admin-500 hover:bg-admin-50 dark:hover:bg-admin-800 transition-colors" title="Back to site home">
+          <FiHome className="w-5 h-5" />
         </button>
 
         <button onClick={handleLogout} className="p-2 rounded-xl text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors" title="Sign out">
