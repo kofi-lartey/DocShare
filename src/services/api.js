@@ -299,6 +299,7 @@ export const createSubscription = async (paymentData) => {
 export const getSubscription = async () => {
   const response = await fetch(`${API_BASE}/api/subscriptions`, {
     headers: getAuthHeaders(),
+    cache: 'no-store',
   });
   if (!response.ok) {
     const error = await response.json();
@@ -310,6 +311,7 @@ export const getSubscription = async () => {
 export const getInvoices = async () => {
   const response = await fetch(`${API_BASE}/api/subscriptions/invoices`, {
     headers: getAuthHeaders(),
+    cache: 'no-store',
   });
   if (!response.ok) {
     const error = await response.json();
@@ -334,10 +336,20 @@ export const downloadInvoice = async (invoiceId) => {
     headers: getAuthHeaders(),
   });
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || 'Failed to download invoice');
+    let message = 'Failed to download invoice';
+    try {
+      const error = await response.json();
+      message = error.message || message;
+    } catch {
+      // response was not JSON (e.g. binary error body)
+    }
+    throw new Error(message);
   }
-  return response.json();
+  const blob = await response.blob();
+  const contentDisposition = response.headers.get('Content-Disposition') || '';
+  const filenameMatch = contentDisposition.match(/filename="?([^";]+)"?/);
+  const filename = filenameMatch ? filenameMatch[1] : `invoice-${invoiceId}.pdf`;
+  return { blob, filename };
 };
 
 export const logout = async () => {

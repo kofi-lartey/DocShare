@@ -14,7 +14,7 @@ import { loadStripe } from '@stripe/stripe-js';
 import { useNotification } from '../contexts/NotificationContext';
 import { useAuth } from '../contexts/AuthContext';
 import { PRICING_PLANS } from '../utils/constants';
-import { cn, formatDate, formatFileSize } from '../utils/helpers';
+import { cn, formatDate, formatFileSize, formatMoney } from '../utils/helpers';
 import Button from '../components/common/Button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '../components/common/Card';
 import { Modal } from '../components/common/Modal';
@@ -176,7 +176,7 @@ const InvoiceItem = ({ invoice, onDownload }) => (
     <td className="py-3 px-4 text-sm text-gray-500">{formatDate(invoice.createdAt || invoice.date)}</td>
     <td className="py-3 px-4">
       <span className="text-sm font-medium text-gray-900 dark:text-white">
-        GH₵{invoice.amount === 0 ? '0.00' : invoice.amount.toFixed(2)}
+        {formatMoney(invoice.amount, invoice.currency)}
       </span>
     </td>
     <td className="py-3 px-4">
@@ -215,34 +215,46 @@ export default function Subscription() {
 
   const handleDownloadInvoice = async (invoiceId) => {
     try {
-      const response = await downloadInvoice(invoiceId);
-      const invoice = response.data;
-      
-      const csvContent = `Invoice Number,${invoice.invoiceNumber}
-Date,${new Date(invoice.createdAt).toDateString()}
-Customer,"${invoice.userId?.fullName || ''}"
-Email,"${invoice.userId?.email || ''}"
-Plan,"${invoice.plan}"
-Amount,"${invoice.currency} ${invoice.amount.toFixed(2)}"
-Status,"${invoice.status}"
-Description,"${invoice.description}"
-Period Start,${invoice.billingPeriod?.start ? new Date(invoice.billingPeriod.start).toDateString() : ''}
-Period End,${invoice.billingPeriod?.end ? new Date(invoice.billingPeriod.end).toDateString() : ''}
-`.trim();
+      const { blob, filename } = await downloadInvoice(invoiceId);
 
-      const blob = new Blob([csvContent], { type: 'text/csv' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `invoice-${invoice.invoiceNumber}.csv`;
+      a.download = filename;
+      a.style.display = 'none';
       document.body.appendChild(a);
       a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      
+      // Delay revoke so the browser can start the download.
+      setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 1000);
+
       success('Invoice downloaded successfully');
     } catch (err) {
+      // Fallback: open the persisted Cloudinary PDF directly (forces download
+      // via Content-Disposition on a CDN URL).
+      const inv = invoices.find((i) => (i.id || i._id) === invoiceId);
+      if (inv?.pdfUrl) {
+        window.open(inv.pdfUrl, '_blank', 'noopener,noreferrer');
+        return;
+      }
       notifyError(err.message || 'Failed to download invoice');
+    }
+  };
+
+  const refreshData = async () => {
+    try {
+      const [subRes, invRes] = await Promise.all([
+        getSubscription(),
+        getInvoices(),
+      ]);
+      if (subRes.data && subRes.data.plan !== undefined && subRes.data.status === 'active') {
+        setSubscription(subRes.data);
+      }
+      setInvoices(invRes.data || []);
+    } catch {
+      // keep existing state on transient errors
     }
   };
 
@@ -271,6 +283,16 @@ Period End,${invoice.billingPeriod?.end ? new Date(invoice.billingPeriod.end).to
     fetchData();
   }, [notifyError, navigate]);
 
+  // Refresh when the tab regains focus (e.g. after returning from a Stripe/
+  // Paystack checkout redirect).
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') refreshData();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, []);
+
   const handleSubscribe = async () => {
     if (!selectedPlan) return;
     setSubmitting(true);
@@ -298,8 +320,21 @@ Period End,${invoice.billingPeriod?.end ? new Date(invoice.billingPeriod.end).to
         }
         updateUser(result.data.user);
       }
-      
-      setSubscription(result.data);
+
+      // Re-fetch authoritative subscription + invoice data so the UI reflects
+      // the new plan and the generated invoice immediately (no manual reload).
+      try {
+        const [subRes, invRes] = await Promise.all([
+          getSubscription(),
+          getInvoices(),
+        ]);
+        if (subRes.data) setSubscription(subRes.data);
+        if (invRes.data) setInvoices(invRes.data);
+      } catch {
+        // fall back to whatever we have; the success path still completes
+        if (result.data?.subscription) setSubscription(result.data.subscription);
+      }
+
       setShowSuccess(true);
       setShowPayment(false);
       success('Subscription created successfully! 🎉');
@@ -585,8 +620,12 @@ Period End,${invoice.billingPeriod?.end ? new Date(invoice.billingPeriod.end).to
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                  {invoices.map((invoice) => (
-                    <InvoiceItem key={invoice.id} invoice={invoice} onDownload={handleDownloadInvoice} />
+                  {invoices.map((invoice, idx) => (
+                    <InvoiceItem
+                      key={invoice.id || invoice._id || idx}
+                      invoice={invoice}
+                      onDownload={handleDownloadInvoice}
+                    />
                   ))}
                 </tbody>
               </table>
